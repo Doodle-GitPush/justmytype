@@ -8,6 +8,7 @@ import { FONTS } from './data/fonts';
 import { SAMPLE } from './data/content';
 
 import { Switch } from "@/components/ui/switch";
+import { Analytics } from "@vercel/analytics/react";
 
 const THEMES = [
   { name: 'blue', color: '#3b82f6', hex: 'bg-blue-500' },
@@ -147,6 +148,7 @@ export default function App() {
         secondaryLocked={secondaryLocked} setSecondaryLocked={setSecondaryLocked}
         THEMES={THEMES} theme={theme} setTheme={setTheme}
       />
+      <Analytics />
     </div>
   );
 }
