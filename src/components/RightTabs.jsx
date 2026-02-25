@@ -1,23 +1,27 @@
 import { motion } from 'framer-motion';
-import { Lock, Unlock, FileText, LayoutTemplate, Layers, Type } from 'lucide-react';
-
-const TABS = [
-    { id: 'article', label: 'Article', icon: FileText },
-    { id: 'hero', label: 'Hero', icon: LayoutTemplate },
-    { id: 'cards', label: 'Cards', icon: Layers },
-    { id: 'specimen', label: 'Specimen', icon: Type },
-];
+import { Lock, Unlock, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { TABS } from '../data/constants';
 
 export default function RightTabs({
     activeTab, setActiveTab,
     primaryFont, secondaryFont,
     primaryLocked, setPrimaryLocked,
     secondaryLocked, setSecondaryLocked,
-    THEMES, theme, setTheme
+    THEMES, theme, setTheme,
+    generateRandomPair
 }) {
+    const [isSpinning, setIsSpinning] = useState(false);
+
+    const handleGenerate = () => {
+        generateRandomPair();
+        setIsSpinning(true);
+        setTimeout(() => setIsSpinning(false), 500);
+    };
+
     return (
         <motion.nav
-            className="w-[260px] min-w-[260px] h-full flex flex-col justify-center items-stretch gap-3 py-5 pr-8 pl-3 bg-background shrink-0"
+            className="hidden lg:flex w-[260px] min-w-[260px] h-full flex-col justify-center items-stretch gap-3 py-5 pr-8 pl-3 bg-background shrink-0 z-10 relative"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
@@ -40,7 +44,7 @@ export default function RightTabs({
                     return (
                         <button
                             key={tab.id}
-                            className={`flex items-center gap-2.5 py-2.5 px-4 border-none rounded-[10px] bg-transparent text-[14px] font-medium text-left relative z-10 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                            className={`flex items-center gap-2.5 py-2.5 px-4 shrink-0 border-none rounded-[10px] bg-transparent text-[14px] font-medium text-left relative z-10 transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                             onClick={() => setActiveTab(tab.id)}
                             style={{ position: 'relative' }}
                         >
@@ -73,6 +77,28 @@ export default function RightTabs({
                         />
                     ))}
                 </div>
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-border">
+                <motion.div
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={{ scale: [1, 1.01, 1] }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                >
+                    <button
+                        className="w-full h-12 rounded-xl text-[14px] font-semibold shadow-[0_4px_16px_rgba(37,99,235,0.2)] flex items-center justify-center gap-2.5 transition-all text-white bg-primary hover:bg-primary/95"
+                        onClick={handleGenerate}
+                    >
+                        <motion.div
+                            animate={{ rotate: isSpinning ? 360 : 0 }}
+                            transition={{ duration: 0.5, ease: "backOut" }}
+                        >
+                            <RefreshCw size={18} />
+                        </motion.div>
+                        Generate Pair
+                    </button>
+                </motion.div>
             </div>
         </motion.nav>
     );

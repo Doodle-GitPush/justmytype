@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sun, Check, Copy } from 'lucide-react';
+import { Moon, Sun, Check, Copy, RefreshCw, PanelLeft } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
+import { TABS } from './data/constants';
 import { FONTS } from './data/fonts';
 import { SAMPLE } from './data/content';
 
@@ -19,6 +20,8 @@ const THEMES = [
 ];
 
 export default function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [theme, setTheme] = useState('blue');
   const [activeTab, setActiveTab] = useState('article');
@@ -100,13 +103,78 @@ export default function App() {
   };
 
   return (
-    <div className="w-screen h-screen flex bg-background overflow-hidden relative font-sans text-foreground">
+    <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
+
+      {/* Sidebar Desktop Toggle (Floating when closed) */}
+      <AnimatePresence>
+        {!isDesktopSidebarOpen && (
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            onClick={() => setIsDesktopSidebarOpen(true)}
+            className="hidden lg:flex absolute top-5 left-6 z-50 p-2.5 bg-background/80 backdrop-blur border border-border rounded-xl shadow-sm text-foreground hover:bg-muted transition-all"
+          >
+            <PanelLeft size={18} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Floating Action Button for Settings/Fonts Menu */}
+      <button
+        onClick={() => setIsSidebarOpen(true)}
+        className="lg:hidden fixed bottom-[90px] right-4 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
+      >
+        <span className="font-serif italic text-lg font-bold mt-0.5">Aa</span>
+      </button>
+
+      {/* Mobile Bottom Bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-md border-t border-border z-40 px-2 py-2">
+        <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide max-w-md mx-auto">
+          {TABS.map((tab) => {
+            const isActive = tab.id === activeTab;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-xl transition-colors ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:bg-muted/50'}`}
+              >
+                <Icon size={18} />
+                <span className="text-[10px] font-medium">{tab.label}</span>
+              </button>
+            );
+          })}
+          <div className="w-px h-8 bg-border/50 shrink-0 mx-1"></div>
+          <button
+            onClick={generateRandomPair}
+            className="flex-shrink-0 flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <RefreshCw size={18} />
+            <span className="text-[10px] font-medium">Generate</span>
+          </button>
+        </div>
+      </nav>
+
       {/* Floating Actions */}
-      <div className="absolute top-6 right-8 flex items-center gap-4 z-50">
+      <div className="absolute top-4 right-4 lg:top-6 lg:right-8 flex items-center gap-2 lg:gap-4 z-50">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className={`flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2.5 rounded-full text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-card ${copied ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}`}
+          className={`flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-3 py-2 lg:px-4 lg:py-2.5 rounded-full text-[12px] lg:text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-card ${copied ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}`}
           onClick={handleCopyCss}
         >
           {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -114,7 +182,7 @@ export default function App() {
         </motion.button>
 
         {/* Dark Mode Toggle */}
-        <div className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-3 py-2.5 rounded-full shadow-sm">
+        <div className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-2 py-1.5 lg:px-3 lg:py-2.5 rounded-full shadow-sm">
           <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
           <Switch
             checked={isDark}
@@ -125,6 +193,8 @@ export default function App() {
       </div>
 
       <Sidebar
+        isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
+        isDesktopOpen={isDesktopSidebarOpen} setDesktopOpen={setIsDesktopSidebarOpen}
         primaryFont={primaryFont} setPrimaryFont={setPrimaryFont}
         secondaryFont={secondaryFont} setSecondaryFont={setSecondaryFont}
         pControls={primaryControls} setPControls={setPrimaryControls}
@@ -147,7 +217,14 @@ export default function App() {
         primaryLocked={primaryLocked} setPrimaryLocked={setPrimaryLocked}
         secondaryLocked={secondaryLocked} setSecondaryLocked={setSecondaryLocked}
         THEMES={THEMES} theme={theme} setTheme={setTheme}
+        generateRandomPair={generateRandomPair}
       />
+
+      {/* Footer Link */}
+      <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground z-40 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
+        Made with ❤️ by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary transition-colors underline decoration-border underline-offset-2">Priyansh Jolapara</a>
+      </div>
+
       <Analytics />
     </div>
   );

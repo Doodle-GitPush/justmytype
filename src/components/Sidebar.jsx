@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { RefreshCw } from 'lucide-react';
+import { X, PanelLeft } from 'lucide-react';
 import FontSection from './FontSection';
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
@@ -13,26 +13,33 @@ export default function Sidebar({
     sControls, setSControls,
     sampleText, setSampleText,
     generateRandomPair,
-    primaryLocked, secondaryLocked
+    primaryLocked, secondaryLocked,
+    isOpen, onClose,
+    isDesktopOpen, setDesktopOpen
 }) {
-    const [isSpinning, setIsSpinning] = useState(false);
-
-    const handleGenerate = (e) => {
-        generateRandomPair();
-        setIsSpinning(true);
-        setTimeout(() => setIsSpinning(false), 500);
-    };
-
     return (
         <motion.aside
-            className="w-80 h-full flex flex-col bg-background/50 backdrop-blur-3xl border-r border-border z-20 relative flex-shrink-0"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            className={`
+                fixed lg:relative top-0 left-0 z-50 h-[100dvh] lg:h-full flex flex-col bg-background/95 lg:bg-background/50 backdrop-blur-3xl transition-all duration-300 overflow-hidden shrink-0
+                ${isOpen ? 'translate-x-0 shadow-2xl border-r border-border' : '-translate-x-full lg:shadow-none'} 
+                ${isDesktopOpen ? 'lg:w-80 lg:min-w-[320px] lg:border-r lg:border-border lg:translate-x-0 lg:opacity-100' : 'lg:w-0 lg:min-w-0 lg:border-none lg:-translate-x-full lg:opacity-0 lg:p-0'}
+                w-[85vw] max-w-[320px]
+            `}
+            initial={false}
         >
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 pb-2 flex flex-col scrollbar-hide">
-                <div className="text-2xl font-light tracking-tight mb-8 text-foreground pl-1">
-                    JustMy<span className="font-extrabold">Type</span>
+            <div className="w-[85vw] max-w-[320px] lg:w-80 h-[100dvh] lg:h-full overflow-y-auto overflow-x-hidden p-5 lg:p-6 lg:pb-2 flex flex-col scrollbar-hide pt-10 lg:pt-6">
+                <div className="flex items-center justify-between mb-6 lg:mb-8 pl-1">
+                    <div className="text-2xl font-light tracking-tight text-foreground">
+                        JustMy<span className="font-extrabold">Type</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setDesktopOpen(false)} className="hidden lg:flex p-2 bg-transparent rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                            <PanelLeft size={20} />
+                        </button>
+                        <button onClick={onClose} className="lg:hidden p-2 bg-muted/50 rounded-full text-muted-foreground hover:text-foreground">
+                            <X size={18} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col mb-6">
@@ -72,28 +79,6 @@ export default function Sidebar({
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
-            </div>
-
-            <div className="p-5 bg-background border-t border-border z-10">
-                <motion.div
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={{ scale: [1, 1.01, 1] }}
-                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                >
-                    <Button
-                        className="w-full h-12 rounded-xl text-[14px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.15)] flex items-center justify-center gap-2.5 transition-all text-background dark:text-foreground bg-primary"
-                        onClick={handleGenerate}
-                    >
-                        <motion.div
-                            animate={{ rotate: isSpinning ? 360 : 0 }}
-                            transition={{ duration: 0.5, ease: "backOut" }}
-                        >
-                            <RefreshCw size={18} />
-                        </motion.div>
-                        Generate Pair
-                    </Button>
-                </motion.div>
             </div>
         </motion.aside>
     );
