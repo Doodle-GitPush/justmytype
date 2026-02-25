@@ -133,17 +133,51 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Floating Action Button for Settings/Fonts Menu */}
+      {/* Mobile Top Header (replaces absolute buttons) */}
+      <header className="lg:hidden flex items-center justify-between px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="w-11 h-11 bg-background/80 backdrop-blur border border-border text-foreground rounded-full shadow-sm flex items-center justify-center hover:bg-muted transition-all shrink-0"
+        >
+          <span className="font-serif italic text-lg font-bold mt-0.5">Aa</span>
+        </button>
+
+        <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center gap-1.5 bg-transparent px-3 py-1.5 rounded-full text-[12px] font-semibold text-foreground transition-colors hover:bg-muted ${copied ? 'text-emerald-600' : ''}`}
+            onClick={handleCopyCss}
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
+          </motion.button>
+
+          <div className="w-px h-3.5 bg-border mx-0.5"></div>
+
+          <div className="flex items-center gap-1.5 bg-transparent px-2 py-1.5 rounded-full">
+            <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
+            <Switch
+              checked={isDark}
+              onCheckedChange={setIsDark}
+              className="scale-[0.85] origin-center -mx-0.5"
+            />
+            <Moon size={14} className={isDark ? 'text-foreground' : 'text-muted-foreground'} />
+          </div>
+        </div>
+      </header>
+
+      {/* Floating Action Button for Generate (Mobile Only) */}
       <button
-        onClick={() => setIsSidebarOpen(true)}
-        className="lg:hidden fixed bottom-[90px] right-4 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
+        onClick={generateRandomPair}
+        className="lg:hidden fixed bottom-[90px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_rgba(var(--primary),0.3)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
       >
-        <span className="font-serif italic text-lg font-bold mt-0.5">Aa</span>
+        <RefreshCw size={24} />
       </button>
 
       {/* Mobile Bottom Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-md border-t border-border z-40 px-2 py-2">
-        <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide max-w-md mx-auto">
+        <div className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide max-w-md mx-auto">
           {TABS.map((tab) => {
             const isActive = tab.id === activeTab;
             const Icon = tab.icon;
@@ -158,37 +192,29 @@ export default function App() {
               </button>
             );
           })}
-          <div className="w-px h-8 bg-border/50 shrink-0 mx-1"></div>
-          <button
-            onClick={generateRandomPair}
-            className="flex-shrink-0 flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <RefreshCw size={18} />
-            <span className="text-[10px] font-medium">Generate</span>
-          </button>
         </div>
       </nav>
 
-      {/* Floating Actions */}
-      <div className="absolute top-4 right-4 lg:top-6 lg:right-8 flex items-center gap-2 lg:gap-4 z-50">
+      {/* Floating Actions (Desktop Only) */}
+      <div className="hidden lg:flex absolute top-6 right-8 items-center gap-4 z-50 bg-transparent backdrop-filter-none border-none rounded-full p-0 shadow-none">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className={`flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-3 py-2 lg:px-4 lg:py-2.5 rounded-full text-[12px] lg:text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-card ${copied ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : ''}`}
+          className={`flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2.5 rounded-full text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-card ${copied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20' : ''}`}
           onClick={handleCopyCss}
         >
           {copied ? <Check size={16} /> : <Copy size={16} />}
-          {copied ? 'Copied!' : 'Copy CSS'}
+          <span>{copied ? 'Copied!' : 'Copy CSS'}</span>
         </motion.button>
 
         {/* Dark Mode Toggle */}
-        <div className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-2 py-1.5 lg:px-3 lg:py-2.5 rounded-full shadow-sm">
-          <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
+        <div className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-3 py-2.5 rounded-full shadow-sm">
+          <Sun size={16} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
           <Switch
             checked={isDark}
             onCheckedChange={setIsDark}
           />
-          <Moon size={14} className={isDark ? 'text-foreground' : 'text-muted-foreground'} />
+          <Moon size={16} className={isDark ? 'text-foreground' : 'text-muted-foreground'} />
         </div>
       </div>
 
