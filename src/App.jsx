@@ -5,7 +5,7 @@ import Sidebar from './components/Sidebar';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
 import { TABS } from './data/constants';
-import { FONTS } from './data/fonts';
+import { FONTS, fetchAllFonts } from './data/fonts';
 import { SAMPLE } from './data/content';
 
 import { Switch } from "@/components/ui/switch";
@@ -38,6 +38,12 @@ export default function App() {
 
   const [sampleText, setSampleText] = useState(SAMPLE.title);
   const [copied, setCopied] = useState(false);
+  const [fontListLength, setFontListLength] = useState(FONTS.length);
+
+  // Fetch full fonts library
+  useEffect(() => {
+    fetchAllFonts().then(list => setFontListLength(list.length));
+  }, []);
 
   // Theme observer
   useEffect(() => {
@@ -90,16 +96,16 @@ export default function App() {
     let si = FONTS.indexOf(secondaryFont);
 
     if (!primaryLocked && !secondaryLocked) {
-      pi = Math.floor(Math.random() * FONTS.length);
-      do { si = Math.floor(Math.random() * FONTS.length); } while (si === pi);
+      pi = Math.floor(Math.random() * fontListLength);
+      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
     } else if (!primaryLocked) {
-      do { pi = Math.floor(Math.random() * FONTS.length); } while (pi === si);
+      do { pi = Math.floor(Math.random() * fontListLength); } while (pi === si);
     } else {
-      do { si = Math.floor(Math.random() * FONTS.length); } while (si === pi);
+      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
     }
 
-    if (!primaryLocked) setPrimaryFont(FONTS[pi]);
-    if (!secondaryLocked) setSecondaryFont(FONTS[si]);
+    if (!primaryLocked && FONTS[pi]) setPrimaryFont(FONTS[pi]);
+    if (!secondaryLocked && FONTS[si]) setSecondaryFont(FONTS[si]);
   };
 
   return (
@@ -228,6 +234,7 @@ export default function App() {
         sampleText={sampleText} setSampleText={setSampleText}
         generateRandomPair={generateRandomPair}
         primaryLocked={primaryLocked} secondaryLocked={secondaryLocked}
+        fontList={FONTS}
       />
 
       <PreviewArea

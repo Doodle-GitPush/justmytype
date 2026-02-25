@@ -32,7 +32,7 @@ const loadFont = (fontName) => {
     loadedFonts.add(fontName);
 };
 
-export default function FontSection({ font, setFont, controls, setControls }) {
+export default function FontSection({ font, setFont, controls, setControls, fontList = FONTS }) {
     const [open, setOpen] = useState(false);
 
     // Auto-load current font whenever it changes via the random generator
@@ -59,7 +59,7 @@ export default function FontSection({ font, setFont, controls, setControls }) {
                         <CommandList>
                             <CommandEmpty>No font found.</CommandEmpty>
                             <CommandGroup>
-                                {FONTS.map((f) => (
+                                {fontList.map((f) => (
                                     <CommandItem
                                         key={f}
                                         value={f}

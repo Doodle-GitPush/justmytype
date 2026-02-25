@@ -15,7 +15,8 @@ export default function Sidebar({
     generateRandomPair,
     primaryLocked, secondaryLocked,
     isOpen, onClose,
-    isDesktopOpen, setDesktopOpen
+    isDesktopOpen, setDesktopOpen,
+    fontList
 }) {
     return (
         <motion.aside
@@ -63,7 +64,7 @@ export default function Sidebar({
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
-                            <FontSection font={primaryFont} setFont={setPrimaryFont} controls={pControls} setControls={setPControls} />
+                            <FontSection font={primaryFont} setFont={setPrimaryFont} controls={pControls} setControls={setPControls} fontList={fontList} />
                         </AccordionContent>
                     </AccordionItem>
 
@@ -75,7 +76,7 @@ export default function Sidebar({
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
-                            <FontSection font={secondaryFont} setFont={setSecondaryFont} controls={sControls} setControls={setSControls} />
+                            <FontSection font={secondaryFont} setFont={setSecondaryFont} controls={sControls} setControls={setSControls} fontList={fontList} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
