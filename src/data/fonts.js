@@ -12,13 +12,17 @@ export let FONTS = [
     'Bebas Neue', 'Anton', 'Passion One',
 ].sort((a, b) => a.localeCompare(b));
 
+export let FONT_METADATA = [];
+
 // Fetches the full list of 1500+ Google Fonts asynchronously
 export const fetchAllFonts = async () => {
     try {
-        const response = await fetch('/all-google-fonts.json');
+        const response = await fetch('/font-metadata.json');
         const data = await response.json();
         if (data && Array.isArray(data)) {
-            const allFonts = new Set([...FONTS, ...data]);
+            FONT_METADATA = data;
+            const fetchedNames = data.map(f => f.family);
+            const allFonts = new Set([...FONTS, ...fetchedNames]);
             FONTS = Array.from(allFonts).sort((a, b) => a.localeCompare(b));
             return FONTS;
         }

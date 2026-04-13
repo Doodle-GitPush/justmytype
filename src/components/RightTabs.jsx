@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Lock, Unlock, RefreshCw } from 'lucide-react';
+import { Lock, Unlock, RefreshCw, Info } from 'lucide-react';
 import { useState } from 'react';
 import { TABS } from '../data/constants';
 
@@ -9,7 +9,8 @@ export default function RightTabs({
     primaryLocked, setPrimaryLocked,
     secondaryLocked, setSecondaryLocked,
     THEMES, theme, setTheme,
-    generateRandomPair
+    generateRandomPair,
+    onShowFontInfo,
 }) {
     const [isSpinning, setIsSpinning] = useState(false);
 
@@ -30,10 +31,12 @@ export default function RightTabs({
                 <Badge
                     label="PRIMARY FONT" font={primaryFont}
                     isLocked={primaryLocked} onToggleLock={() => setPrimaryLocked(!primaryLocked)}
+                    onInfo={() => onShowFontInfo(primaryFont)}
                 />
                 <Badge
                     label="SECONDARY FONT" font={secondaryFont}
                     isLocked={secondaryLocked} onToggleLock={() => setSecondaryLocked(!secondaryLocked)}
+                    onInfo={() => onShowFontInfo(secondaryFont)}
                 />
             </div>
 
@@ -79,7 +82,18 @@ export default function RightTabs({
                 </div>
             </div>
 
-            <div className="mt-6 pt-5 border-t border-border">
+            {/* Keyboard Shortcut Hint */}
+            <div className="px-2">
+                <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('jmt:showShortcuts'))}
+                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                >
+                    <kbd className="text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded font-mono">?</kbd>
+                    Keyboard shortcuts
+                </button>
+            </div>
+
+            <div className="mt-4 pt-5 border-t border-border">
                 <motion.div
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.95 }}
@@ -97,6 +111,7 @@ export default function RightTabs({
                             <RefreshCw size={18} />
                         </motion.div>
                         Generate Pair
+                        <kbd className="hidden lg:inline text-[10px] px-1.5 py-0.5 bg-white/20 border border-white/30 rounded font-mono ml-1">Space</kbd>
                     </button>
                 </motion.div>
             </div>
@@ -104,19 +119,21 @@ export default function RightTabs({
     );
 }
 
-function Badge({ label, font, isLocked, onToggleLock }) {
+function Badge({ label, font, isLocked, onToggleLock, onInfo }) {
     return (
         <motion.div
-            className={`flex items-stretch border rounded-xl h-16 w-full shadow-sm cursor-pointer transition-colors duration-200 ${isLocked
+            className={`flex items-stretch border rounded-xl h-16 w-full shadow-sm transition-colors duration-200 ${isLocked
                 ? 'bg-primary border-primary text-primary-foreground'
-                : 'bg-card border-border/80 text-foreground hover:bg-black/5 dark:hover:bg-white/5'
+                : 'bg-card border-border/80 text-foreground'
                 }`}
-            onClick={onToggleLock}
             whileHover={{ y: -2, boxShadow: '0 6px 16px rgba(0,0,0,0.06)' }}
-            whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         >
-            <div className="flex flex-col justify-center px-4 gap-0.5 flex-1 min-w-0">
+            {/* Lock toggle area (click to lock) */}
+            <button
+                className="flex flex-col justify-center px-4 gap-0.5 flex-1 min-w-0 text-left"
+                onClick={onToggleLock}
+            >
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isLocked ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                     {label}
                 </span>
@@ -136,7 +153,19 @@ function Badge({ label, font, isLocked, onToggleLock }) {
                         {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
                     </div>
                 </div>
-            </div>
+            </button>
+
+            {/* Info button — separate tap target */}
+            <button
+                onClick={(e) => { e.stopPropagation(); onInfo(); }}
+                className={`shrink-0 w-10 flex items-center justify-center border-l transition-colors rounded-r-xl ${isLocked
+                    ? 'border-primary-foreground/20 text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10'
+                    : 'border-border/60 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50'
+                    }`}
+                title="Font info"
+            >
+                <Info size={14} />
+            </button>
         </motion.div>
     );
 }

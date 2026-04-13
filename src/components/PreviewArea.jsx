@@ -13,7 +13,8 @@ export default function PreviewArea({
     activeTab,
     primaryFont, pControls,
     secondaryFont, sControls,
-    sampleText
+    sampleText,
+    lineWidth,
 }) {
     const pStyle = {
         fontFamily: `'${primaryFont}', sans-serif`,
@@ -32,9 +33,11 @@ export default function PreviewArea({
     };
 
     const text = sampleText || SAMPLE.title;
+    const maxBodyWidth = lineWidth >= 100 ? '100%' : `${lineWidth}ch`;
 
     return (
         <motion.main
+            id="jmt-preview-area"
             className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:px-6 pb-28 lg:pb-7 bg-background relative"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -51,15 +54,15 @@ export default function PreviewArea({
                                 </h1>
                             </div>
 
-                            <p className="text-xl text-muted-foreground mb-8" style={sStyle}>
+                            <p className="text-xl text-muted-foreground mb-8" style={{ ...sStyle, maxWidth: maxBodyWidth }}>
                                 {SAMPLE.lead}
                             </p>
 
-                            <p className="leading-7 [&:not(:first-child)]:mt-6 text-foreground" style={sStyle}>
+                            <p className="leading-7 [&:not(:first-child)]:mt-6 text-foreground" style={{ ...sStyle, maxWidth: maxBodyWidth }}>
                                 {SAMPLE.body1}
                             </p>
 
-                            <blockquote className="mt-8 mb-8 border-l-2 border-primary pl-6 italic text-muted-foreground" style={sStyle}>
+                            <blockquote className="mt-8 mb-8 border-l-2 border-primary pl-6 italic text-muted-foreground" style={{ ...sStyle, maxWidth: maxBodyWidth }}>
                                 "{SAMPLE.quote}"
                             </blockquote>
 
@@ -67,7 +70,7 @@ export default function PreviewArea({
                                 The Anatomy of Type
                             </h2>
 
-                            <p className="leading-7 [&:not(:first-child)]:mt-6 text-foreground" style={sStyle}>
+                            <p className="leading-7 [&:not(:first-child)]:mt-6 text-foreground" style={{ ...sStyle, maxWidth: maxBodyWidth }}>
                                 {SAMPLE.body2}
                             </p>
 
@@ -75,13 +78,13 @@ export default function PreviewArea({
                                 Principles of Pairing
                             </h3>
 
-                            <ul className="my-6 ml-6 list-disc [&>li]:mt-2 text-foreground" style={sStyle}>
+                            <ul className="my-6 ml-6 list-disc [&>li]:mt-2 text-foreground" style={{ ...sStyle, maxWidth: maxBodyWidth }}>
                                 <li><strong>Contrast is key:</strong> Pair a serif with a sans-serif for distinct hierarchy.</li>
                                 <li><strong>Match x-heights:</strong> Fonts with similar lowercase heights often feel harmonious.</li>
                                 <li><strong>Avoid overwhelming similarity:</strong> If two fonts are too close, they clash rather than complement.</li>
                             </ul>
 
-                            <p className="leading-7 [&:not(:first-child)]:mt-6 text-foreground" style={sStyle}>
+                            <p className="leading-7 [&:not(:first-child)]:mt-6 text-foreground" style={{ ...sStyle, maxWidth: maxBodyWidth }}>
                                 {SAMPLE.body3} {SAMPLE.body4}
                             </p>
                         </motion.div>

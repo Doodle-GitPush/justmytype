@@ -206,3 +206,50 @@
     /* Chrome, Safari and Opera */
   }
 }
+
+/* ─── Print / Save as PDF ─────────────────────────────────────────── */
+@media print {
+  /* Hide everything by default */
+  body > * {
+    display: none !important;
+  }
+
+  /* Show only the root wrapper */
+  body > #root {
+    display: block !important;
+  }
+
+  /* Hide all UI chrome */
+  header,
+  nav,
+  aside,
+  footer,
+  button,
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* Make the preview area fill the page */
+  #jmt-preview-area {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* Let the preview cards breathe on the page */
+  #jmt-preview-area > * {
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 32px !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4 portrait;
+  }
+}

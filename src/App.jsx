@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sun, Check, Copy, RefreshCw, PanelLeft } from 'lucide-react';
+import { Moon, Sun, Check, Copy, RefreshCw, PanelLeft, Download, Printer, ChevronDown, Keyboard } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import Sidebar from './components/Sidebar';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
+import FontInfoPanel from './components/FontInfoPanel';
 import { TABS } from './data/constants';
 import { FONTS, fetchAllFonts } from './data/fonts';
 import { SAMPLE } from './data/content';
@@ -19,12 +21,26 @@ const THEMES = [
   { name: 'orange', color: '#f97316', hex: 'bg-orange-500' },
 ];
 
+const SHORTCUTS = [
+  { keys: ['Space'], label: 'Generate new pair' },
+  { keys: ['L'], label: 'Lock / unlock primary font' },
+  { keys: ['K'], label: 'Lock / unlock secondary font' },
+  { keys: ['D'], label: 'Toggle dark mode' },
+  { keys: ['1'], label: 'Article preview' },
+  { keys: ['2'], label: 'Hero preview' },
+  { keys: ['3'], label: 'Cards preview' },
+  { keys: ['4'], label: 'Specimen preview' },
+  { keys: ['?'], label: 'Show this shortcuts panel' },
+  { keys: ['Esc'], label: 'Close any panel' },
+];
+
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [theme, setTheme] = useState('blue');
   const [activeTab, setActiveTab] = useState('article');
+  const [lineWidth, setLineWidth] = useState(72);
 
   // Primary Font State
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -39,6 +55,17 @@ export default function App() {
   const [sampleText, setSampleText] = useState(SAMPLE.title);
   const [copied, setCopied] = useState(false);
   const [fontListLength, setFontListLength] = useState(FONTS.length);
+
+  // Font Info Panel
+  const [infoFont, setInfoFont] = useState(null);
+
+  // Shortcuts overlay
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Export dropdown
+  const [exportOpen, setExportOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef(null);
 
   // Fetch full fonts library
   useEffect(() => {
@@ -56,13 +83,98 @@ export default function App() {
       root.setAttribute('data-theme', 'light');
     }
 
-    // Apply accent color theme
     THEMES.forEach(t => root.classList.remove(`theme-${t.name}`));
     if (theme !== 'blue') {
       root.classList.add(`theme-${theme}`);
     }
   }, [isDark, theme]);
 
+  // Close export dropdown on outside click
+  useEffect(() => {
+    if (!exportOpen) return;
+    const handler = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setExportOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [exportOpen]);
+
+  // Listen for the shortcuts event from RightTabs
+  useEffect(() => {
+    const handler = () => setShowShortcuts(true);
+    window.addEventListener('jmt:showShortcuts', handler);
+    return () => window.removeEventListener('jmt:showShortcuts', handler);
+  }, []);
+
+  const generateRandomPair = useCallback(() => {
+    if (primaryLocked && secondaryLocked) return;
+
+    let pi = FONTS.indexOf(primaryFont);
+    let si = FONTS.indexOf(secondaryFont);
+
+    if (!primaryLocked && !secondaryLocked) {
+      pi = Math.floor(Math.random() * fontListLength);
+      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
+    } else if (!primaryLocked) {
+      do { pi = Math.floor(Math.random() * fontListLength); } while (pi === si);
+    } else {
+      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
+    }
+
+    if (!primaryLocked && FONTS[pi]) setPrimaryFont(FONTS[pi]);
+    if (!secondaryLocked && FONTS[si]) setSecondaryFont(FONTS[si]);
+  }, [primaryLocked, secondaryLocked, primaryFont, secondaryFont, fontListLength]);
+
+  // ──────────────────────────────────────────────
+  // Keyboard Shortcuts
+  // ──────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      // Suppress when typing in an input or textarea
+      const tag = e.target.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+      switch (e.key) {
+        case ' ':
+          e.preventDefault();
+          generateRandomPair();
+          break;
+        case 'l':
+        case 'L':
+          setPrimaryLocked(v => !v);
+          break;
+        case 'k':
+        case 'K':
+          setSecondaryLocked(v => !v);
+          break;
+        case 'd':
+        case 'D':
+          setIsDark(v => !v);
+          break;
+        case '1': setActiveTab(TABS[0].id); break;
+        case '2': setActiveTab(TABS[1].id); break;
+        case '3': setActiveTab(TABS[2].id); break;
+        case '4': setActiveTab(TABS[3].id); break;
+        case '?':
+          setShowShortcuts(v => !v);
+          break;
+        case 'Escape':
+          setShowShortcuts(false);
+          setInfoFont(null);
+          setExportOpen(false);
+          break;
+        default: break;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [generateRandomPair]);
+
+  // ──────────────────────────────────────────────
+  // Copy CSS
+  // ──────────────────────────────────────────────
   const handleCopyCss = () => {
     const encP = primaryFont.replace(/ /g, '+');
     const encS = secondaryFont.replace(/ /g, '+');
@@ -83,33 +195,106 @@ export default function App() {
   font-weight: ${secondaryControls.weight};
   line-height: ${secondaryControls.lh};
   letter-spacing: ${secondaryControls.ls}em;
+  max-width: ${lineWidth >= 100 ? '100%' : `${lineWidth}ch`};
 }`;
     navigator.clipboard.writeText(css);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const generateRandomPair = () => {
-    if (primaryLocked && secondaryLocked) return;
-
-    let pi = FONTS.indexOf(primaryFont);
-    let si = FONTS.indexOf(secondaryFont);
-
-    if (!primaryLocked && !secondaryLocked) {
-      pi = Math.floor(Math.random() * fontListLength);
-      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
-    } else if (!primaryLocked) {
-      do { pi = Math.floor(Math.random() * fontListLength); } while (pi === si);
-    } else {
-      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
+  // ──────────────────────────────────────────────
+  // Export as PNG
+  // ──────────────────────────────────────────────
+  const handleExportPng = async () => {
+    setExportOpen(false);
+    setIsExporting(true);
+    try {
+      const el = document.getElementById('jmt-preview-area');
+      if (!el) return;
+      const canvas = await html2canvas(el, {
+        backgroundColor: isDark ? '#09090b' : '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `JustMyType_${primaryFont.replace(/\s/g, '-')}_x_${secondaryFont.replace(/\s/g, '-')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
     }
+  };
 
-    if (!primaryLocked && FONTS[pi]) setPrimaryFont(FONTS[pi]);
-    if (!secondaryLocked && FONTS[si]) setSecondaryFont(FONTS[si]);
+  // ──────────────────────────────────────────────
+  // Print
+  // ──────────────────────────────────────────────
+  const handlePrint = () => {
+    setExportOpen(false);
+    window.print();
   };
 
   return (
     <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
+
+      {/* Font Info Panel */}
+      <FontInfoPanel font={infoFont} onClose={() => setInfoFont(null)} />
+
+      {/* Keyboard Shortcuts Overlay */}
+      <AnimatePresence>
+        {showShortcuts && (
+          <>
+            <motion.div
+              key="sc-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+              onClick={() => setShowShortcuts(false)}
+            />
+            <motion.div
+              key="sc-panel"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[400px] max-w-[90vw] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <Keyboard size={16} className="text-primary" />
+                  <span className="font-semibold text-foreground text-[15px]">Keyboard Shortcuts</span>
+                </div>
+                <button
+                  onClick={() => setShowShortcuts(false)}
+                  className="text-[11px] px-2.5 py-1 bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors font-mono"
+                >
+                  Esc
+                </button>
+              </div>
+              <div className="p-5 flex flex-col gap-2">
+                {SHORTCUTS.map(({ keys, label }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="text-[13px] text-muted-foreground">{label}</span>
+                    <div className="flex items-center gap-1">
+                      {keys.map(k => (
+                        <kbd
+                          key={k}
+                          className="text-[11px] px-2 py-0.5 bg-muted border border-border rounded-md font-mono text-foreground min-w-[28px] text-center"
+                        >
+                          {k}
+                        </kbd>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Sidebar Desktop Toggle (Floating when closed) */}
       <AnimatePresence>
@@ -139,7 +324,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Top Header (replaces absolute buttons) */}
+      {/* Mobile Top Header */}
       <header className="lg:hidden flex items-center justify-between px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
         <button
           onClick={() => setIsSidebarOpen(true)}
@@ -173,7 +358,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Floating Action Button for Generate (Mobile Only) */}
+      {/* Mobile FAB for Generate */}
       <button
         onClick={generateRandomPair}
         className="lg:hidden fixed bottom-[90px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_rgba(var(--primary),0.3)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
@@ -202,7 +387,8 @@ export default function App() {
       </nav>
 
       {/* Floating Actions (Desktop Only) */}
-      <div className="hidden lg:flex absolute top-6 right-8 items-center gap-4 z-50 bg-transparent backdrop-filter-none border-none rounded-full p-0 shadow-none">
+      <div className="hidden lg:flex absolute top-6 right-8 items-center gap-3 z-50">
+        {/* Copy CSS */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -212,6 +398,61 @@ export default function App() {
           {copied ? <Check size={16} /> : <Copy size={16} />}
           <span>{copied ? 'Copied!' : 'Copy CSS'}</span>
         </motion.button>
+
+        {/* Export Dropdown */}
+        <div className="relative" ref={exportRef}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setExportOpen(v => !v)}
+            disabled={isExporting}
+            className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2.5 rounded-full text-[13px] font-semibold text-foreground shadow-sm transition-colors hover:bg-card disabled:opacity-60"
+          >
+            {isExporting ? (
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                <RefreshCw size={16} />
+              </motion.div>
+            ) : (
+              <Download size={16} />
+            )}
+            <span>{isExporting ? 'Exporting…' : 'Export'}</span>
+            <ChevronDown size={13} className={`transition-transform ${exportOpen ? 'rotate-180' : ''}`} />
+          </motion.button>
+
+          <AnimatePresence>
+            {exportOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-[calc(100%+8px)] w-48 bg-background border border-border rounded-xl shadow-xl overflow-hidden z-50"
+              >
+                <button
+                  onClick={handleExportPng}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <Download size={14} className="text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="font-medium">Export as PNG</div>
+                    <div className="text-[11px] text-muted-foreground">2× high-res image</div>
+                  </div>
+                </button>
+                <div className="h-px bg-border mx-3" />
+                <button
+                  onClick={handlePrint}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[13px] text-foreground hover:bg-muted transition-colors text-left"
+                >
+                  <Printer size={14} className="text-muted-foreground shrink-0" />
+                  <div>
+                    <div className="font-medium">Print / Save PDF</div>
+                    <div className="text-[11px] text-muted-foreground">Clean print layout</div>
+                  </div>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Dark Mode Toggle */}
         <div className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-3 py-2.5 rounded-full shadow-sm">
@@ -235,6 +476,7 @@ export default function App() {
         generateRandomPair={generateRandomPair}
         primaryLocked={primaryLocked} secondaryLocked={secondaryLocked}
         fontList={FONTS}
+        lineWidth={lineWidth} setLineWidth={setLineWidth}
       />
 
       <PreviewArea
@@ -242,6 +484,7 @@ export default function App() {
         primaryFont={primaryFont} pControls={primaryControls}
         secondaryFont={secondaryFont} sControls={secondaryControls}
         sampleText={sampleText}
+        lineWidth={lineWidth}
       />
 
       <RightTabs
@@ -251,6 +494,7 @@ export default function App() {
         secondaryLocked={secondaryLocked} setSecondaryLocked={setSecondaryLocked}
         THEMES={THEMES} theme={theme} setTheme={setTheme}
         generateRandomPair={generateRandomPair}
+        onShowFontInfo={setInfoFont}
       />
 
       {/* Footer Link */}

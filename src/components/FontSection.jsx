@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, Check, ChevronsUpDown } from 'lucide-react';
 import { FONTS } from '../data/fonts';
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
