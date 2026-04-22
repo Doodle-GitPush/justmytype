@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { X, PanelLeft, Filter, XCircle, AlignLeft } from 'lucide-react';
 import FontSection from './FontSection';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -27,7 +27,8 @@ export default function Sidebar({
     isOpen, onClose,
     isDesktopOpen, setDesktopOpen,
     fontList,
-    lineWidth, setLineWidth,
+    bodyLineHeight, setBodyLineHeight,
+    onFilteredListChange,
 }) {
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedWeights, setSelectedWeights] = useState([]);
@@ -61,6 +62,11 @@ export default function Sidebar({
             return true;
         });
     }, [fontList, selectedCategories, selectedWeights, requireItalic]);
+
+    // Notify parent whenever the filtered list changes
+    useEffect(() => {
+        if (onFilteredListChange) onFilteredListChange(filteredList);
+    }, [filteredList]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const toggleCategory = (cat) => {
         if (selectedCategories.includes(cat)) setSelectedCategories(selectedCategories.filter(c => c !== cat));
@@ -99,7 +105,7 @@ export default function Sidebar({
 
                 <div className="flex flex-col mb-6">
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">SAMPLE TEXT</span>
-                    <div className="bg-card rounded-xl overflow-hidden p-4 border shadow-sm">
+                    <div className="bg-card rounded-xl overflow-hidden p-4 border">
                         <Textarea
                             className="w-full border-none outline-none bg-transparent text-[13px] text-foreground font-sans leading-relaxed resize-none min-h-[80px] p-0 focus-visible:ring-0 shadow-none"
                             placeholder="Type something to preview..."
@@ -125,7 +131,7 @@ export default function Sidebar({
                         </div>
                     </div>
                     
-                    <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border shadow-sm">
+                    <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border">
                         <div className="flex flex-col gap-3">
                             <span className="text-[11px] font-medium text-foreground">Category</span>
                             <div className="flex flex-wrap gap-2">
@@ -181,28 +187,28 @@ export default function Sidebar({
                     </div>
                 </div>
 
-                {/* Line Width Control */}
+                {/* Line Height Control */}
                 <div className="flex flex-col mb-6">
                     <div className="flex items-center justify-between mb-3 pl-1">
                         <div className="flex items-center gap-2">
                             <AlignLeft size={12} className="text-muted-foreground" />
-                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">LINE WIDTH</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">LINE HEIGHT</span>
                         </div>
                         <span className="text-[11px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            {lineWidth >= 100 ? 'Full width' : `${lineWidth} ch`}
+                            {bodyLineHeight.toFixed(2)}×
                         </span>
                     </div>
-                    <div className="p-4 bg-card rounded-xl border shadow-sm">
+                    <div className="p-4 bg-card rounded-xl border">
                         <Slider
-                            min={40}
-                            max={100}
-                            step={1}
-                            value={[lineWidth]}
-                            onValueChange={(val) => setLineWidth(val[0])}
+                            min={1.0}
+                            max={2.5}
+                            step={0.05}
+                            value={[bodyLineHeight]}
+                            onValueChange={(val) => setBodyLineHeight(val[0])}
                         />
                         <div className="flex justify-between mt-2">
-                            <span className="text-[10px] text-muted-foreground/60">Narrow (40ch)</span>
-                            <span className="text-[10px] text-muted-foreground/60">Full width</span>
+                            <span className="text-[10px] text-muted-foreground/60">Tight (1.0)</span>
+                            <span className="text-[10px] text-muted-foreground/60">Loose (2.5)</span>
                         </div>
                     </div>
                 </div>

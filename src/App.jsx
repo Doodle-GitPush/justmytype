@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Moon, Sun, Check, Copy, RefreshCw, PanelLeft, Download, Printer, ChevronDown, Keyboard } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import Sidebar from './components/Sidebar';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -9,9 +9,19 @@ import FontInfoPanel from './components/FontInfoPanel';
 import { TABS } from './data/constants';
 import { FONTS, fetchAllFonts } from './data/fonts';
 import { SAMPLE } from './data/content';
-
 import { Switch } from "@/components/ui/switch";
 import { Analytics } from "@vercel/analytics/react";
+
+// Font loader — ensures fonts are fetched before they render
+const loadedFonts = new Set();
+const loadFont = (fontName) => {
+  if (!fontName || loadedFonts.has(fontName)) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800&display=swap`;
+  document.head.appendChild(link);
+  loadedFonts.add(fontName);
+};
 
 const THEMES = [
   { name: 'blue', color: '#3b82f6', hex: 'bg-blue-500' },
@@ -40,7 +50,7 @@ export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [theme, setTheme] = useState('blue');
   const [activeTab, setActiveTab] = useState('article');
-  const [lineWidth, setLineWidth] = useState(72);
+  const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
   // Primary Font State
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -55,6 +65,7 @@ export default function App() {
   const [sampleText, setSampleText] = useState(SAMPLE.title);
   const [copied, setCopied] = useState(false);
   const [fontListLength, setFontListLength] = useState(FONTS.length);
+  const [filteredFonts, setFilteredFonts] = useState(FONTS);
 
   // Font Info Panel
   const [infoFont, setInfoFont] = useState(null);
@@ -67,10 +78,17 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef(null);
 
-  // Fetch full fonts library
   useEffect(() => {
-    fetchAllFonts().then(list => setFontListLength(list.length));
+    fetchAllFonts().then(list => {
+      setFontListLength(list.length);
+      // Also load the initially selected fonts
+      loadFont(primaryFont);
+      loadFont(secondaryFont);
+    });
   }, []);
+
+  // Keep filteredFonts in sync: if no filters are active the full FONTS list is the base
+  // (Sidebar calls onFilteredListChange whenever its filteredList updates)
 
   // Theme observer
   useEffect(() => {
@@ -111,21 +129,29 @@ export default function App() {
   const generateRandomPair = useCallback(() => {
     if (primaryLocked && secondaryLocked) return;
 
-    let pi = FONTS.indexOf(primaryFont);
-    let si = FONTS.indexOf(secondaryFont);
+    // Use filtered list when available, fall back to full list
+    const pool = (filteredFonts && filteredFonts.length > 1) ? filteredFonts : FONTS;
+
+    let pf = primaryFont;
+    let sf = secondaryFont;
 
     if (!primaryLocked && !secondaryLocked) {
-      pi = Math.floor(Math.random() * fontListLength);
-      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
+      let pi = Math.floor(Math.random() * pool.length);
+      let si;
+      do { si = Math.floor(Math.random() * pool.length); } while (si === pi);
+      pf = pool[pi];
+      sf = pool[si];
     } else if (!primaryLocked) {
-      do { pi = Math.floor(Math.random() * fontListLength); } while (pi === si);
+      const others = pool.filter(f => f !== secondaryFont);
+      pf = others[Math.floor(Math.random() * others.length)] || pool[0];
     } else {
-      do { si = Math.floor(Math.random() * fontListLength); } while (si === pi);
+      const others = pool.filter(f => f !== primaryFont);
+      sf = others[Math.floor(Math.random() * others.length)] || pool[0];
     }
 
-    if (!primaryLocked && FONTS[pi]) setPrimaryFont(FONTS[pi]);
-    if (!secondaryLocked && FONTS[si]) setSecondaryFont(FONTS[si]);
-  }, [primaryLocked, secondaryLocked, primaryFont, secondaryFont, fontListLength]);
+    if (!primaryLocked && pf) { loadFont(pf); setPrimaryFont(pf); }
+    if (!secondaryLocked && sf) { loadFont(sf); setSecondaryFont(sf); }
+  }, [primaryLocked, secondaryLocked, primaryFont, secondaryFont, filteredFonts]);
 
   // ──────────────────────────────────────────────
   // Keyboard Shortcuts
@@ -193,9 +219,8 @@ export default function App() {
   font-family: '${secondaryFont}', sans-serif;
   font-size: ${secondaryControls.size}px;
   font-weight: ${secondaryControls.weight};
-  line-height: ${secondaryControls.lh};
+  line-height: ${bodyLineHeight};
   letter-spacing: ${secondaryControls.ls}em;
-  max-width: ${lineWidth >= 100 ? '100%' : `${lineWidth}ch`};
 }`;
     navigator.clipboard.writeText(css);
     setCopied(true);
@@ -210,19 +235,32 @@ export default function App() {
     setIsExporting(true);
     try {
       const el = document.getElementById('jmt-preview-area');
-      if (!el) return;
-      const canvas = await html2canvas(el, {
+      if (!el) throw new Error('Preview element not found');
+
+      // Wait for fonts to finish painting
+      await document.fonts.ready;
+      await new Promise(r => setTimeout(r, 300));
+
+      const options = {
         backgroundColor: isDark ? '#09090b' : '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+        pixelRatio: 2,
+        // Skip cross-origin font embedding — fonts are already loaded via <link> tags
+        // and will render correctly without re-fetching
+        skipFonts: true,
+        cacheBust: true,
+      };
+
+      // Call twice: first pass warms up the renderer (avoids blank images)
+      await toPng(el, options);
+      const dataUrl = await toPng(el, options);
+
       const link = document.createElement('a');
       link.download = `JustMyType_${primaryFont.replace(/\s/g, '-')}_x_${secondaryFont.replace(/\s/g, '-')}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error('Export failed:', err);
+      alert(`Export failed: ${err.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -476,7 +514,8 @@ export default function App() {
         generateRandomPair={generateRandomPair}
         primaryLocked={primaryLocked} secondaryLocked={secondaryLocked}
         fontList={FONTS}
-        lineWidth={lineWidth} setLineWidth={setLineWidth}
+        bodyLineHeight={bodyLineHeight} setBodyLineHeight={setBodyLineHeight}
+        onFilteredListChange={setFilteredFonts}
       />
 
       <PreviewArea
@@ -484,7 +523,7 @@ export default function App() {
         primaryFont={primaryFont} pControls={primaryControls}
         secondaryFont={secondaryFont} sControls={secondaryControls}
         sampleText={sampleText}
-        lineWidth={lineWidth}
+        bodyLineHeight={bodyLineHeight}
       />
 
       <RightTabs
