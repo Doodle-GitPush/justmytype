@@ -1,16 +1,63 @@
-# React + Vite
+# JustMyType
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A font-pairing playground. Pick two typefaces from ~1,900 Google Fonts, preview
+them in real layouts, tune size/weight/leading/tracking, and copy the CSS out.
 
-Currently, two official plugins are available:
+## Preview modes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| Mode | What it shows |
+|---|---|
+| **Article** | Long-form editorial layout — heading, lead, body, pull quote, lists |
+| **Hero** | A full marketing page inside a browser mockup, with scroll-driven sections |
+| **Cards** | A three-card grid, for testing type at small sizes |
+| **Specimen** | Side-by-side alphabet, numerals and punctuation for both faces |
+| **Poster** | A full-bleed animated type specimen built to show the pairing off |
 
-## React Compiler
+## Motion
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Animation is GSAP throughout, via a small shared layer:
 
-## Expanding the ESLint configuration
+- `src/lib/gsap.js` — plugin registration plus the house easing/duration scale,
+  so everything moves with one voice.
+- `src/hooks/useTypeReveal.js` — `SplitText`-driven line/word/char reveals.
+  Uses `autoSplit`, so headings re-split when a webfont swaps in and line breaks
+  are measured against the real font rather than the fallback.
+- `src/components/motion/Presence.jsx` — mount/unmount with an exit animation.
+- `ScrollTrigger` drives the below-the-fold sections in the Hero mockup.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Every animation checks `prefers-reduced-motion` and degrades to a static layout.
+
+> **Working on animations?** Build tweens *synchronously* inside `useGSAP` so its
+> context owns them. Creating them in an async callback escapes that context, and
+> a later revert strands elements at their `from` state. Any node handed to
+> `SplitText` also needs a React `key` tied to its text — SplitText replaces the
+> node's children, so React can't reconcile a text change against it.
+
+## Keyboard shortcuts
+
+`Space` new pair · `L`/`K` lock primary/secondary · `D` dark mode ·
+`1`–`5` preview modes · `?` shortcuts · `Esc` close
+
+## Local development
+
+```bash
+npm install
+npm run dev      # vite dev server
+npm run lint     # eslint — must pass clean
+npm run build    # production build
+```
+
+## Font data
+
+`public/font-metadata.json` holds family, category, available weights and italic
+support for every family in the picker. It drives the filters, the weight
+controls (which only offer weights a family actually ships), the generic CSS
+fallback, and the Google Fonts request axis — so a single-weight family isn't
+asked for six weights it doesn't have.
+
+`Wanted Sans` is self-hosted from `public/fonts/` and deliberately excluded from
+Google Fonts requests.
+
+## Stack
+
+React 19 · Vite 7 · Tailwind v4 (CSS-first `@theme`) · shadcn/Radix · GSAP 3

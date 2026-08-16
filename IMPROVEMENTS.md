@@ -1,8 +1,21 @@
 # JustMyType — Improvement Roadmap
 
-An audit of the current codebase (`c5eab8f`) with prioritised, concrete work items.
+An audit of the codebase at `c5eab8f` with prioritised, concrete work items.
 Findings marked **measured** were reproduced against a running build; findings marked
 **unverified** need a check on real hardware before acting.
+
+> ## Status
+>
+> The UI/animation pass (GSAP migration, chrome redesign, Poster mode) shipped and
+> closed several of these items along the way. **Done:** 1 (picker windowing),
+> 2 (single font loader), 3 (lint config), 4 (dead code), 7 (real weights),
+> 9 (metadata + preconnect), 11 (bundle splitting), 14 (README), and the `alert()`
+> / clipboard error handling from 12. Item 10 is partly done — the two hand-rolled
+> modals now carry dialog semantics and icon buttons have labels, but they are not
+> yet routed through Radix `Dialog` and have no focus trap.
+>
+> **Still open and highest value: 5 (shareable URL state) and 6 (a real pairing
+> engine).** Those remain the two changes that would most improve the product.
 
 ---
 

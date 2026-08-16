@@ -1,12 +1,11 @@
-import { motion } from 'framer-motion';
-import { X, PanelLeft, Filter, XCircle, AlignLeft } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { X, PanelLeft, Filter, XCircle, AlignLeft, Type } from 'lucide-react';
 import FontSection from './FontSection';
-import { useState, useMemo, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
 import { FONT_METADATA } from '../data/fonts';
+import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = ['Sans Serif', 'Serif', 'Display', 'Handwriting', 'Monospace'];
@@ -16,13 +15,48 @@ const WEIGHT_GROUPS = [
     { label: 'Bold', min: 600, max: 900 }
 ];
 
+/** Shared shape for the small pill toggles used across the filter block. */
+function Pill({ active, onClick, children, className }) {
+    return (
+        <button
+            onClick={onClick}
+            aria-pressed={active}
+            className={cn(
+                "text-[11px] px-3 py-1.5 rounded-full border font-medium transition-all duration-200 active:scale-95",
+                active
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground",
+                className
+            )}
+        >
+            {children}
+        </button>
+    );
+}
+
+function Section({ icon: Icon, title, aside, children }) {
+    return (
+        <div data-panel className="flex flex-col mb-6">
+            <div className="flex items-center justify-between mb-3 pl-1">
+                <div className="flex items-center gap-2">
+                    <Icon size={12} className="text-muted-foreground" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        {title}
+                    </span>
+                </div>
+                {aside}
+            </div>
+            {children}
+        </div>
+    );
+}
+
 export default function Sidebar({
     primaryFont, setPrimaryFont,
     secondaryFont, setSecondaryFont,
     pControls, setPControls,
     sControls, setSControls,
     sampleText, setSampleText,
-    generateRandomPair,
     primaryLocked, secondaryLocked,
     isOpen, onClose,
     isDesktopOpen, setDesktopOpen,
@@ -30,6 +64,7 @@ export default function Sidebar({
     bodyLineHeight, setBodyLineHeight,
     onFilteredListChange,
 }) {
+    const scope = useRef(null);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedWeights, setSelectedWeights] = useState([]);
     const [requireItalic, setRequireItalic] = useState(false);
@@ -46,12 +81,8 @@ export default function Sidebar({
             const meta = FONT_METADATA.find(m => m.family === fName);
             if (!meta) return true; // Keep local fonts
 
-            if (selectedCategories.length > 0 && !selectedCategories.includes(meta.category)) {
-                return false;
-            }
-            if (requireItalic && !meta.hasItalic) {
-                return false;
-            }
+            if (selectedCategories.length > 0 && !selectedCategories.includes(meta.category)) return false;
+            if (requireItalic && !meta.hasItalic) return false;
             if (selectedWeights.length > 0) {
                 const hasMatchingWeight = selectedWeights.some(label => {
                     const group = WEIGHT_GROUPS.find(w => w.label === label);
@@ -63,91 +94,104 @@ export default function Sidebar({
         });
     }, [fontList, selectedCategories, selectedWeights, requireItalic]);
 
-    // Notify parent whenever the filtered list changes
     useEffect(() => {
         if (onFilteredListChange) onFilteredListChange(filteredList);
     }, [filteredList]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const toggleCategory = (cat) => {
-        if (selectedCategories.includes(cat)) setSelectedCategories(selectedCategories.filter(c => c !== cat));
-        else setSelectedCategories([...selectedCategories, cat]);
-    };
+    useGSAP(
+        () => {
+            if (prefersReducedMotion()) return;
+            gsap.from(gsap.utils.selector(scope)('[data-panel]'), {
+                opacity: 0,
+                x: -18,
+                duration: DUR.slow,
+                ease: EASE.out,
+                stagger: 0.06,
+                delay: 0.05,
+            });
+        },
+        { scope }
+    );
 
-    const toggleWeight = (w) => {
-        if (selectedWeights.includes(w)) setSelectedWeights(selectedWeights.filter(x => x !== w));
-        else setSelectedWeights([...selectedWeights, w]);
-    };
+    const toggle = (list, setList) => (value) =>
+        setList(list.includes(value) ? list.filter(v => v !== value) : [...list, value]);
 
     return (
-        <motion.aside
+        <aside
+            ref={scope}
             className={`
-                fixed lg:relative top-0 left-0 z-50 h-[100dvh] lg:h-full flex flex-col bg-background/95 lg:bg-background/50 backdrop-blur-3xl transition-all duration-300 overflow-hidden shrink-0
-                ${isOpen ? 'translate-x-0 shadow-2xl border-r border-border' : '-translate-x-full lg:shadow-none'} 
+                fixed lg:relative top-0 left-0 z-50 h-[100dvh] lg:h-full flex flex-col bg-background/95 lg:bg-background/60 backdrop-blur-3xl transition-all duration-300 overflow-hidden shrink-0
+                ${isOpen ? 'translate-x-0 shadow-2xl border-r border-border' : '-translate-x-full lg:shadow-none'}
                 ${isDesktopOpen ? 'lg:w-80 lg:min-w-[320px] lg:border-r lg:border-border lg:translate-x-0 lg:opacity-100' : 'lg:w-0 lg:min-w-0 lg:border-none lg:-translate-x-full lg:opacity-0 lg:p-0'}
                 w-[85vw] max-w-[320px]
             `}
-            initial={false}
         >
             <div className="w-[85vw] max-w-[320px] lg:w-80 h-[100dvh] lg:h-full overflow-y-auto overflow-x-hidden p-5 lg:p-6 lg:pb-2 flex flex-col scrollbar-hide pt-10 lg:pt-6">
-                <div className="flex items-center justify-between mb-6 lg:mb-8 pl-1">
+                <div data-panel className="flex items-center justify-between mb-7 pl-1">
                     <div className="text-2xl font-light tracking-tight text-foreground">
                         JustMy<span className="font-extrabold">Type</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setDesktopOpen(false)} className="hidden lg:flex p-2 bg-transparent rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                        <button
+                            onClick={() => setDesktopOpen(false)}
+                            aria-label="Collapse sidebar"
+                            className="hidden lg:flex p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        >
                             <PanelLeft size={20} />
                         </button>
-                        <button onClick={onClose} className="lg:hidden p-2 bg-muted/50 rounded-full text-muted-foreground hover:text-foreground">
+                        <button
+                            onClick={onClose}
+                            aria-label="Close sidebar"
+                            className="lg:hidden p-2 bg-muted/50 rounded-full text-muted-foreground hover:text-foreground"
+                        >
                             <X size={18} />
                         </button>
                     </div>
                 </div>
 
-                <div className="flex flex-col mb-6">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">SAMPLE TEXT</span>
-                    <div className="bg-card rounded-xl overflow-hidden p-4 border">
+                <Section icon={Type} title="Sample Text">
+                    <div className="bg-card rounded-xl overflow-hidden p-4 border focus-within:ring-2 focus-within:ring-ring/40 transition-shadow">
                         <Textarea
-                            className="w-full border-none outline-none bg-transparent text-[13px] text-foreground font-sans leading-relaxed resize-none min-h-[80px] p-0 focus-visible:ring-0 shadow-none"
-                            placeholder="Type something to preview..."
+                            className="w-full border-none outline-none bg-transparent text-[13px] text-foreground leading-relaxed resize-none min-h-[80px] p-0 focus-visible:ring-0 shadow-none"
+                            placeholder="Type something to preview…"
                             value={sampleText}
                             onChange={(e) => setSampleText(e.target.value)}
+                            aria-label="Sample text"
                         />
                     </div>
-                </div>
+                </Section>
 
-                <div className="flex flex-col mb-6">
-                    <div className="flex items-center justify-between mb-3 pl-1">
-                        <div className="flex items-center gap-2">
-                            <Filter size={12} className="text-muted-foreground" />
-                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">FILTERS</span>
-                        </div>
+                <Section
+                    icon={Filter}
+                    title="Filters"
+                    aside={
                         <div className="flex items-center gap-3">
                             {hasFilters && (
-                                <button onClick={clearFilters} className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider flex items-center gap-1">
+                                <button
+                                    onClick={clearFilters}
+                                    className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider flex items-center gap-1"
+                                >
                                     <XCircle size={10} strokeWidth={2.5} /> Clear
                                 </button>
                             )}
-                            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{filteredList.length}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full tabular-nums">
+                                {filteredList.length}
+                            </span>
                         </div>
-                    </div>
-                    
+                    }
+                >
                     <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border">
                         <div className="flex flex-col gap-3">
                             <span className="text-[11px] font-medium text-foreground">Category</span>
                             <div className="flex flex-wrap gap-2">
                                 {CATEGORIES.map(cat => (
-                                    <button
+                                    <Pill
                                         key={cat}
-                                        onClick={() => toggleCategory(cat)}
-                                        className={cn(
-                                            "text-[11px] px-3 py-1.5 rounded-full border transition-all duration-200 font-medium",
-                                            selectedCategories.includes(cat) 
-                                                ? "bg-primary text-primary-foreground border-primary shadow-md" 
-                                                : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
-                                        )}
+                                        active={selectedCategories.includes(cat)}
+                                        onClick={() => toggle(selectedCategories, setSelectedCategories)(cat)}
                                     >
                                         {cat}
-                                    </button>
+                                    </Pill>
                                 ))}
                             </div>
                         </div>
@@ -158,87 +202,76 @@ export default function Sidebar({
                             <span className="text-[11px] font-medium text-foreground">Weight & Style</span>
                             <div className="flex flex-wrap gap-2">
                                 {WEIGHT_GROUPS.map(w => (
-                                    <button
+                                    <Pill
                                         key={w.label}
-                                        onClick={() => toggleWeight(w.label)}
-                                        className={cn(
-                                            "text-[11px] px-3 py-1.5 rounded-full border transition-all duration-200 font-medium",
-                                            selectedWeights.includes(w.label)
-                                                ? "bg-primary text-primary-foreground border-primary shadow-md"
-                                                : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
-                                        )}
+                                        active={selectedWeights.includes(w.label)}
+                                        onClick={() => toggle(selectedWeights, setSelectedWeights)(w.label)}
                                     >
                                         {w.label}
-                                    </button>
+                                    </Pill>
                                 ))}
-                                <button
+                                <Pill
+                                    active={requireItalic}
                                     onClick={() => setRequireItalic(!requireItalic)}
-                                    className={cn(
-                                        "text-[11px] px-3 py-1.5 rounded-full border transition-all duration-200 font-medium italic select-none",
-                                        requireItalic 
-                                            ? "bg-primary text-primary-foreground border-primary shadow-md" 
-                                            : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
-                                    )}
+                                    className="italic"
                                 >
                                     Italic
-                                </button>
+                                </Pill>
                             </div>
                         </div>
                     </div>
-                </div>
+                </Section>
 
-                {/* Line Height Control */}
-                <div className="flex flex-col mb-6">
-                    <div className="flex items-center justify-between mb-3 pl-1">
-                        <div className="flex items-center gap-2">
-                            <AlignLeft size={12} className="text-muted-foreground" />
-                            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">LINE HEIGHT</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                <Section
+                    icon={AlignLeft}
+                    title="Body Line Height"
+                    aside={
+                        <span className="text-[11px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full tabular-nums">
                             {bodyLineHeight.toFixed(2)}×
                         </span>
-                    </div>
+                    }
+                >
                     <div className="p-4 bg-card rounded-xl border">
                         <Slider
-                            min={1.0}
-                            max={2.5}
-                            step={0.05}
+                            min={1.0} max={2.5} step={0.05}
                             value={[bodyLineHeight]}
                             onValueChange={(val) => setBodyLineHeight(val[0])}
+                            aria-label="Body line height"
                         />
                         <div className="flex justify-between mt-2">
-                            <span className="text-[10px] text-muted-foreground/60">Tight (1.0)</span>
-                            <span className="text-[10px] text-muted-foreground/60">Loose (2.5)</span>
+                            <span className="text-[10px] text-muted-foreground/60">Tight</span>
+                            <span className="text-[10px] text-muted-foreground/60">Loose</span>
                         </div>
                     </div>
-                </div>
+                </Section>
 
                 <Accordion type="multiple" defaultValue={["primary", "secondary"]} className="w-full mb-6 relative z-10">
-                    <AccordionItem value="primary" className="border-b-0 mb-3">
-                        <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
-                            <div className="flex flex-col items-start text-left gap-1">
-                                <span>PRIMARY {primaryLocked && '(LOCKED)'}</span>
-                                <span className="text-[15px] font-medium text-foreground capitalize normal-case tracking-normal">{primaryFont}</span>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
-                            <FontSection font={primaryFont} setFont={setPrimaryFont} controls={pControls} setControls={setPControls} fontList={filteredList} />
-                        </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="secondary" className="border-b-0 relative">
-                        <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
-                            <div className="flex flex-col items-start text-left gap-1">
-                                <span>SECONDARY {secondaryLocked && '(LOCKED)'}</span>
-                                <span className="text-[15px] font-medium text-foreground capitalize normal-case tracking-normal">{secondaryFont}</span>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
-                            <FontSection font={secondaryFont} setFont={setSecondaryFont} controls={sControls} setControls={setSControls} fontList={filteredList} />
-                        </AccordionContent>
-                    </AccordionItem>
+                    {[
+                        { value: 'primary', label: 'Primary', font: primaryFont, setFont: setPrimaryFont, controls: pControls, setControls: setPControls, locked: primaryLocked },
+                        { value: 'secondary', label: 'Secondary', font: secondaryFont, setFont: setSecondaryFont, controls: sControls, setControls: setSControls, locked: secondaryLocked },
+                    ].map((item) => (
+                        <AccordionItem key={item.value} value={item.value} className="border-b-0 mb-3" data-panel>
+                            <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
+                                <div className="flex flex-col items-start text-left gap-1 min-w-0">
+                                    <span>{item.label} {item.locked && '· Locked'}</span>
+                                    <span className="text-[15px] font-medium text-foreground normal-case tracking-normal truncate max-w-[190px]">
+                                        {item.font}
+                                    </span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
+                                <FontSection
+                                    font={item.font}
+                                    setFont={item.setFont}
+                                    controls={item.controls}
+                                    setControls={item.setControls}
+                                    fontList={filteredList}
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
                 </Accordion>
             </div>
-        </motion.aside>
+        </aside>
     );
 }

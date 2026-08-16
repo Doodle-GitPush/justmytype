@@ -189,7 +189,9 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", sans-serif;
+    /* Use the themed UI stack — hard-coding Inter here shadowed --font-sans
+       and requested a family the app never loads at startup. */
+    font-family: var(--font-sans);
   }
 }
 
