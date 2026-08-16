@@ -72,7 +72,10 @@ export default function PosterPreview({ primaryFont, secondaryFont, pControls, s
       // The display type rises out of its mask, character by character.
       // `autoSplit` re-runs this once the webfont actually lands.
       const split = SplitText.create(q('[data-display]'), {
-        type: 'chars',
+        // 'words' matters even though we animate chars: splitting to chars alone
+        // makes every character its own break opportunity, so long family names
+        // wrap mid-word ("Plus Jaka / rta Sans").
+        type: 'words,chars',
         mask: 'chars',
         autoSplit: true,
         onSplit: (self) =>
