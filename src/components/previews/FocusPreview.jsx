@@ -15,7 +15,7 @@ const sizeFor = (len) => {
   return 'clamp(44px,10.5vw,168px)';
 };
 
-export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
 
@@ -88,16 +88,28 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
     <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
       <div
         ref={wordRef}
-        className="max-w-[1100px] leading-[0.98] tracking-tight text-foreground [text-wrap:balance] hyphens-none"
-        style={{ fontFamily: stack(shown.primaryFont), fontWeight: shown.pWeight, fontSize: sizeFor(shown.text.length) }}
+        className="max-w-[1100px] tracking-tight text-foreground [text-wrap:balance] hyphens-none"
+        style={{
+          fontFamily: stack(shown.primaryFont),
+          fontWeight: shown.pWeight,
+          fontSize: sizeFor(shown.text.length),
+          lineHeight: pControls.lh,
+          letterSpacing: `${pControls.ls}em`,
+        }}
       >
         {shown.text}
       </div>
 
       <div
         ref={subRef}
-        className="mt-5 sm:mt-7 max-w-[620px] text-[15px] sm:text-[17px] leading-relaxed text-muted-foreground [text-wrap:balance]"
-        style={{ fontFamily: stack(shown.secondaryFont), fontWeight: shown.sWeight, letterSpacing: `${sControls.ls}em` }}
+        className="mt-5 sm:mt-7 max-w-[620px] text-muted-foreground [text-wrap:balance]"
+        style={{
+          fontFamily: stack(shown.secondaryFont),
+          fontWeight: shown.sWeight,
+          fontSize: `${sControls.size}px`,
+          lineHeight: bodyLineHeight,
+          letterSpacing: `${sControls.ls}em`,
+        }}
       >
         {SAMPLE.lead}
       </div>

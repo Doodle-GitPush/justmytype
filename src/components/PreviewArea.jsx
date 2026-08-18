@@ -88,6 +88,7 @@ export default function PreviewArea({
             secondaryFont={secondaryFont}
             text={text}
             revealKey={revealKey}
+            bodyLineHeight={bodyLineHeight}
           />
         </div>
       </div>
