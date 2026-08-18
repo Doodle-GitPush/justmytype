@@ -242,7 +242,7 @@ export default function TypeDock({
                 to={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.99 }}
                 duration={DUR.base}
-                className="pointer-events-auto w-full max-w-[440px] max-h-[min(65vh,560px)] overflow-y-auto scrollbar-hide bg-background/95 backdrop-blur-xl border border-border rounded-[22px] shadow-2xl p-4 sm:p-5"
+                className="pointer-events-auto w-full max-w-[440px] max-h-[min(65vh,560px)] overflow-y-auto scrollbar-hide bg-background/95 backdrop-blur-xl border border-border rounded-[28px] shadow-2xl p-4 sm:p-5"
             >
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-[13px] font-semibold text-foreground">Tune</span>
@@ -379,7 +379,7 @@ export default function TypeDock({
 
             <div
                 data-bar
-                className="pointer-events-auto w-full max-w-[640px] flex items-end gap-1.5 bg-background/90 backdrop-blur-xl border border-border rounded-[26px] shadow-xl px-2.5 py-2.5"
+                className="pointer-events-auto w-full max-w-[640px] flex items-end gap-1.5 bg-background/90 backdrop-blur-xl border border-border rounded-[32px] shadow-xl px-2.5 py-2.5"
             >
                 <button
                     onClick={() => setIsTuneOpen(v => !v)}
