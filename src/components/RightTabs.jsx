@@ -60,11 +60,10 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                 role="tablist"
                 aria-label="Preview mode"
                 aria-orientation="vertical"
-                /* Collapsed the box is 50x50 (36px row + 12px padding + 2px
-                   border) so rounded-full renders a true circle; expanded it
-                   relaxes to a 28px pill. The gap has to collapse too — flex
-                   gaps still apply between zero-height rows, and three of them
-                   were adding 12px that stopped it being square. */
+                /* Rows stretch to the widest, so the icon column stays aligned
+                   down the list. The gap has to collapse with them — flex gaps
+                   still apply between zero-height rows, and three of them would
+                   otherwise pad the collapsed pill by 12px. */
                 className={cn(
                     "flex flex-col p-1.5 bg-background/90 backdrop-blur-xl border border-border shadow-lg",
                     "transition-[border-radius,row-gap,box-shadow] duration-300 ease-out hover:shadow-xl",
@@ -86,12 +85,8 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                             tabIndex={visible ? 0 : -1}
                             onClick={() => setActiveTab(tab.id)}
                             title={tab.label}
-                            /* row-reverse keeps the icon column pinned to the
-                               right edge beside the bar, so labels grow out to
-                               the left and the icons never move under the
-                               cursor mid-hover. */
                             className={cn(
-                                "flex flex-row-reverse items-center rounded-full overflow-hidden whitespace-nowrap",
+                                "flex items-center rounded-full overflow-hidden whitespace-nowrap",
                                 "transition-[height,opacity,background-color,color] duration-300 ease-out",
                                 visible ? "h-9 opacity-100" : "h-0 opacity-0 pointer-events-none",
                                 isActive
@@ -102,16 +97,19 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                             <span className="shrink-0 w-9 h-9 flex items-center justify-center">
                                 <Icon size={17} />
                             </span>
-                            {/* min-w-0 matters: as a flex item this span
-                                defaults to min-width:auto, which outranks
-                                max-w-0 and leaves the label's full width
-                                behind — that's what stopped the collapsed
-                                pill from being square. Padding is on the
-                                expanded branch only for the same reason. */}
+                            {/* The active row keeps its label while collapsed —
+                                that's what makes the resting state read as
+                                "which mode am I in" rather than a bare icon.
+                                min-w-0 matters on the ones that do collapse: as
+                                a flex item this span defaults to min-width:auto,
+                                which outranks max-w-0 and would leave the label's
+                                full width behind. */}
                             <span
                                 className={cn(
                                     "text-[13px] min-w-0 transition-[max-width,opacity,padding] duration-300 ease-out",
-                                    expanded ? "max-w-[120px] opacity-100 pl-4" : "max-w-0 opacity-0 pl-0"
+                                    (expanded || isActive)
+                                        ? "max-w-[140px] opacity-100 pr-4"
+                                        : "max-w-0 opacity-0 pr-0"
                                 )}
                             >
                                 {tab.label}
@@ -126,7 +124,7 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                 aria-label="Keyboard shortcuts"
                 title="Keyboard shortcuts"
                 className={cn(
-                    "flex flex-row-reverse items-center gap-2 rounded-full bg-background/90 backdrop-blur-xl border border-border shadow-sm",
+                    "flex items-center gap-2 rounded-full bg-background/90 backdrop-blur-xl border border-border shadow-sm",
                     "text-muted-foreground hover:text-foreground transition-all duration-300 overflow-hidden whitespace-nowrap",
                     expanded ? "h-8 px-3 opacity-100" : "h-8 w-8 px-0 justify-center opacity-70"
                 )}
