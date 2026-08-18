@@ -91,7 +91,7 @@ export default function Preloader({ ready, onFinish }) {
     >
       <div
         ref={typeRef}
-        className="overflow-hidden whitespace-nowrap border-r-[3px] pr-1 font-sans text-[clamp(18px,3.6vw,28px)] tracking-tight text-foreground"
+        className="overflow-hidden whitespace-nowrap border-r-[6px] pr-1 font-sans text-[clamp(18px,3.6vw,28px)] tracking-tight text-foreground"
         style={{ borderRightColor: CURSOR_BLUE }}
       >
         <span className="font-medium">JustMy</span>
