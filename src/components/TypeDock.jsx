@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, AlignLeft, Lock, Unlock, Info, RefreshCw } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, Info, RefreshCw } from 'lucide-react';
 import FontSection from './FontSection';
+import FontControls from './FontControls';
 import Presence from './motion/Presence';
 import { stack } from '../lib/typeStyles';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FONT_METADATA } from '../data/fonts';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { cn } from "@/lib/utils";
@@ -35,14 +36,16 @@ function Pill({ active, onClick, children, className }) {
 }
 
 /**
- * Compact primary/secondary chip — name, lock toggle, info button. Used to
- * live as a full-width card at the top of the old left sidebar; moved here
- * so the pairing stays visible right where you're typing instead of off in
- * a rail that didn't exist on mobile at all.
+ * Compact primary/secondary chip — lock toggle, name (opens a size/weight/
+ * line-height/letter-spacing popover), info button. Used to live as a
+ * full-width card at the top of the old left sidebar; moved here so the
+ * pairing stays visible right where you're typing instead of off in a rail
+ * that didn't exist on mobile at all.
  */
-function FontPill({ font, isLocked, onToggleLock, onInfo }) {
+function FontPill({ font, isLocked, onToggleLock, onInfo, controls, setControls, lhValue, setLh }) {
     const nameRef = useRef(null);
     const prevFont = useRef(font);
+    const [adjustOpen, setAdjustOpen] = useState(false);
 
     useLayoutEffect(() => {
         if (font === prevFont.current) return;
@@ -67,21 +70,45 @@ function FontPill({ font, isLocked, onToggleLock, onInfo }) {
             <button
                 onClick={onToggleLock}
                 aria-pressed={isLocked}
-                aria-label={`Font: ${font}. ${isLocked ? 'Locked' : 'Unlocked'}. Click to toggle.`}
-                title={isLocked ? 'Locked — won\'t change on Generate Pair' : 'Click to lock'}
-                className="flex items-center gap-2 pl-3.5 pr-2.5 h-full min-w-0"
+                aria-label={`${isLocked ? 'Unlock' : 'Lock'} ${font}`}
+                title={isLocked ? "Locked — won't change on Generate Pair" : 'Click to lock'}
+                className={cn(
+                    "shrink-0 w-8 h-full flex items-center justify-center border-r transition-colors",
+                    isLocked
+                        ? "border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
+                        : "border-border/60 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
+                )}
             >
-                <span className={cn("shrink-0", isLocked ? "text-primary-foreground" : "text-muted-foreground/60")}>
-                    {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
-                </span>
-                <span
-                    ref={nameRef}
-                    className="text-[12.5px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] sm:max-w-[160px] tracking-tight"
-                    style={{ fontFamily: stack(font) }}
-                >
-                    {font}
-                </span>
+                {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
             </button>
+
+            <Popover open={adjustOpen} onOpenChange={setAdjustOpen}>
+                <PopoverTrigger asChild>
+                    <button
+                        aria-label={`Adjust ${font} — size, weight, line height, letter spacing`}
+                        aria-expanded={adjustOpen}
+                        className="flex items-center px-3 h-full min-w-0"
+                    >
+                        <span
+                            ref={nameRef}
+                            className="text-[12.5px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] sm:max-w-[150px] tracking-tight"
+                            style={{ fontFamily: stack(font) }}
+                        >
+                            {font}
+                        </span>
+                    </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[260px] p-4" align="center" side="top" sideOffset={10}>
+                    <div
+                        className="text-[13px] font-semibold text-foreground mb-3 truncate"
+                        style={{ fontFamily: stack(font) }}
+                    >
+                        {font}
+                    </div>
+                    <FontControls font={font} controls={controls} setControls={setControls} lhValue={lhValue} setLh={setLh} />
+                </PopoverContent>
+            </Popover>
+
             <button
                 onClick={(e) => { e.stopPropagation(); onInfo(); }}
                 aria-label={`About ${font}`}
@@ -302,33 +329,18 @@ export default function TypeDock({
                     </div>
                 </Section>
 
-                <Section
-                    icon={AlignLeft}
-                    title="Body Line Height"
-                    aside={
-                        <span className="text-[11px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full tabular-nums">
-                            {bodyLineHeight.toFixed(2)}×
-                        </span>
-                    }
-                >
-                    <div className="p-4 bg-card rounded-xl border">
-                        <Slider
-                            min={1.0} max={2.5} step={0.05}
-                            value={[bodyLineHeight]}
-                            onValueChange={(val) => setBodyLineHeight(val[0])}
-                            aria-label="Body line height"
-                        />
-                        <div className="flex justify-between mt-2">
-                            <span className="text-[10px] text-muted-foreground/60">Tight</span>
-                            <span className="text-[10px] text-muted-foreground/60">Loose</span>
-                        </div>
-                    </div>
-                </Section>
-
                 <Accordion type="multiple" defaultValue={["primary", "secondary"]} className="w-full">
                     {[
-                        { value: 'primary', label: 'Primary', font: primaryFont, setFont: setPrimaryFont, controls: pControls, setControls: setPControls, locked: primaryLocked },
-                        { value: 'secondary', label: 'Secondary', font: secondaryFont, setFont: setSecondaryFont, controls: sControls, setControls: setSControls, locked: secondaryLocked },
+                        {
+                            value: 'primary', label: 'Primary', font: primaryFont, setFont: setPrimaryFont,
+                            controls: pControls, setControls: setPControls, locked: primaryLocked,
+                            lhValue: pControls.lh, setLh: (v) => setPControls({ ...pControls, lh: v }),
+                        },
+                        {
+                            value: 'secondary', label: 'Secondary', font: secondaryFont, setFont: setSecondaryFont,
+                            controls: sControls, setControls: setSControls, locked: secondaryLocked,
+                            lhValue: bodyLineHeight, setLh: setBodyLineHeight,
+                        },
                     ].map((item) => (
                         <AccordionItem key={item.value} value={item.value} className="border-b-0 mb-3 last:mb-0">
                             <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
@@ -345,6 +357,8 @@ export default function TypeDock({
                                     setFont={item.setFont}
                                     controls={item.controls}
                                     setControls={item.setControls}
+                                    lhValue={item.lhValue}
+                                    setLh={item.setLh}
                                     fontList={filteredList}
                                 />
                             </AccordionContent>
@@ -361,12 +375,20 @@ export default function TypeDock({
                     isLocked={primaryLocked}
                     onToggleLock={() => setPrimaryLocked(!primaryLocked)}
                     onInfo={() => onShowFontInfo(primaryFont)}
+                    controls={pControls}
+                    setControls={setPControls}
+                    lhValue={pControls.lh}
+                    setLh={(v) => setPControls({ ...pControls, lh: v })}
                 />
                 <FontPill
                     font={secondaryFont}
                     isLocked={secondaryLocked}
                     onToggleLock={() => setSecondaryLocked(!secondaryLocked)}
                     onInfo={() => onShowFontInfo(secondaryFont)}
+                    controls={sControls}
+                    setControls={setSControls}
+                    lhValue={bodyLineHeight}
+                    setLh={setBodyLineHeight}
                 />
             </div>
 

@@ -5,7 +5,6 @@ import { TABS } from '../data/constants';
 
 export default function RightTabs({
     activeTab, setActiveTab,
-    THEMES, theme, setTheme,
 }) {
     const scope = useRef(null);
     const listRef = useRef(null);
@@ -90,29 +89,6 @@ export default function RightTabs({
                         </button>
                     );
                 })}
-            </div>
-
-            {/* Accent colour */}
-            <div data-rail className="flex flex-col gap-3 px-2">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Accent Colour</span>
-                <div className="flex items-center gap-3">
-                    {THEMES.map((t) => {
-                        const selected = theme === t.name;
-                        return (
-                            <button
-                                key={t.name}
-                                onClick={() => setTheme(t.name)}
-                                aria-label={`${t.name} accent`}
-                                aria-pressed={selected}
-                                className={`w-5 h-5 rounded-full transition-transform duration-200 hover:scale-115 ${t.hex} ${
-                                    selected
-                                        ? 'ring-2 ring-offset-2 ring-offset-background ring-primary'
-                                        : 'ring-1 ring-black/10 dark:ring-white/15'
-                                }`}
-                            />
-                        );
-                    })}
-                </div>
             </div>
 
             <div data-rail className="px-2">

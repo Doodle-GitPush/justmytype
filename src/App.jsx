@@ -15,14 +15,6 @@ import { DUR } from './lib/gsap';
 import { Switch } from "@/components/ui/switch";
 import { Analytics } from "@vercel/analytics/react";
 
-const THEMES = [
-  { name: 'blue', color: '#3b82f6', hex: 'bg-blue-500' },
-  { name: 'zinc', color: '#18181b', hex: 'bg-zinc-900 dark:bg-zinc-100' },
-  { name: 'rose', color: '#e11d48', hex: 'bg-rose-500' },
-  { name: 'green', color: '#16a34a', hex: 'bg-green-600' },
-  { name: 'orange', color: '#f97316', hex: 'bg-orange-500' },
-];
-
 const SHORTCUTS = [
   { keys: ['Space'], label: 'Generate new pair' },
   { keys: ['L'], label: 'Lock / unlock primary font' },
@@ -41,7 +33,6 @@ export default function App() {
   const [isDark, setIsDark] = useState(() =>
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
-  const [theme, setTheme] = useState('blue');
   const [activeTab, setActiveTab] = useState('focus');
   const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
@@ -93,10 +84,7 @@ export default function App() {
     const root = document.documentElement;
     root.classList.toggle('dark', isDark);
     root.setAttribute('data-theme', isDark ? 'dark' : 'light');
-
-    THEMES.forEach(t => root.classList.remove(`theme-${t.name}`));
-    if (theme !== 'blue') root.classList.add(`theme-${theme}`);
-  }, [isDark, theme]);
+  }, [isDark]);
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -457,7 +445,6 @@ export default function App() {
 
         <RightTabs
           activeTab={activeTab} setActiveTab={setActiveTab}
-          THEMES={THEMES} theme={theme} setTheme={setTheme}
         />
 
         <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground z-40 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
