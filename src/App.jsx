@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, RefreshCw, Download, Printer, ChevronDown, Keyboard } from 'lucide-react';
+import { Moon, Sun, Check, Copy, RefreshCw, Download, Printer, ChevronDown, Keyboard, Info } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -52,6 +52,9 @@ export default function App() {
   const [infoFont, setInfoFont] = useState(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
+  const [infoMenuOpen, setInfoMenuOpen] = useState(false);
+  const infoRef = useRef(null);
+
   const [exportOpen, setExportOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
@@ -94,6 +97,15 @@ export default function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [exportOpen]);
+
+  useEffect(() => {
+    if (!infoMenuOpen) return;
+    const handler = (e) => {
+      if (infoRef.current && !infoRef.current.contains(e.target)) setInfoMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [infoMenuOpen]);
 
   useEffect(() => {
     const handler = () => setShowShortcuts(true);
@@ -154,6 +166,7 @@ export default function App() {
           setInfoFont(null);
           setExportOpen(false);
           setIsTuneOpen(false);
+          setInfoMenuOpen(false);
           break;
         default: break;
       }
@@ -332,6 +345,42 @@ export default function App() {
 
         {/* Desktop floating actions */}
         <div className="hidden lg:flex absolute top-6 right-8 items-center gap-3 z-50">
+          {/* Font details — one button for two fonts, so it picks which. */}
+          <div className="relative" ref={infoRef}>
+            <button
+              onClick={() => setInfoMenuOpen(v => !v)}
+              aria-expanded={infoMenuOpen}
+              aria-label="Font details"
+              title="Font details"
+              className="flex items-center justify-center w-10 h-10 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95"
+            >
+              <Info size={16} />
+            </button>
+
+            <Presence
+              show={infoMenuOpen}
+              from={{ opacity: 0, y: 6, scale: 0.97 }}
+              to={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.97 }}
+              duration={DUR.fast}
+              className="absolute right-0 top-[calc(100%+8px)] w-56 bg-background border border-border rounded-xl shadow-xl overflow-hidden z-50 origin-top-right"
+            >
+              {[
+                { role: 'Primary', font: primaryFont },
+                { role: 'Secondary', font: secondaryFont },
+              ].map(({ role, font }) => (
+                <button
+                  key={role}
+                  onClick={() => { setInfoFont(font); setInfoMenuOpen(false); }}
+                  className="w-full flex flex-col items-start gap-0.5 px-4 py-2.5 hover:bg-muted transition-colors text-left"
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{role}</span>
+                  <span className="text-[13px] font-medium text-foreground truncate max-w-full">{font}</span>
+                </button>
+              ))}
+            </Presence>
+          </div>
+
           <button
             className={`flex items-center gap-2 bg-background/80 backdrop-blur border px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 ${
               copied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
@@ -420,7 +469,6 @@ export default function App() {
           bodyLineHeight={bodyLineHeight} setBodyLineHeight={setBodyLineHeight}
           onFilteredListChange={setFilteredFonts}
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
-          onShowFontInfo={setInfoFont}
           generateRandomPair={generateRandomPair}
         />
 

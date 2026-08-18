@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, Info, RefreshCw } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw } from 'lucide-react';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
 import Presence from './motion/Presence';
@@ -36,13 +36,14 @@ function Pill({ active, onClick, children, className }) {
 }
 
 /**
- * Compact primary/secondary chip — lock toggle, name (opens a size/weight/
- * line-height/letter-spacing popover), info button. Used to live as a
- * full-width card at the top of the old left sidebar; moved here so the
+ * Compact primary/secondary chip — lock toggle plus the font name, which
+ * opens its size/weight/line-height/letter-spacing fields. Used to live as
+ * a full-width card at the top of the old left sidebar; moved here so the
  * pairing stays visible right where you're typing instead of off in a rail
- * that didn't exist on mobile at all.
+ * that didn't exist on mobile at all. Font details moved to the top-right
+ * toolbar, keeping this chip down to the two things you touch constantly.
  */
-function FontPill({ font, isLocked, onToggleLock, onInfo, controls, setControls, lhValue, setLh }) {
+function FontPill({ font, isLocked, onToggleLock, controls, setControls, lhValue, setLh }) {
     const nameRef = useRef(null);
     const prevFont = useRef(font);
     const [adjustOpen, setAdjustOpen] = useState(false);
@@ -98,7 +99,7 @@ function FontPill({ font, isLocked, onToggleLock, onInfo, controls, setControls,
                         </span>
                     </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[260px] p-4" align="center" side="top" sideOffset={10}>
+                <PopoverContent className="w-[248px] p-3" align="center" side="top" sideOffset={10}>
                     <div
                         className="text-[13px] font-semibold text-foreground mb-3 truncate"
                         style={{ fontFamily: stack(font) }}
@@ -108,19 +109,6 @@ function FontPill({ font, isLocked, onToggleLock, onInfo, controls, setControls,
                     <FontControls font={font} controls={controls} setControls={setControls} lhValue={lhValue} setLh={setLh} />
                 </PopoverContent>
             </Popover>
-
-            <button
-                onClick={(e) => { e.stopPropagation(); onInfo(); }}
-                aria-label={`About ${font}`}
-                className={cn(
-                    "shrink-0 w-8 h-full flex items-center justify-center border-l transition-colors",
-                    isLocked
-                        ? "border-primary-foreground/20 text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
-                        : "border-border/60 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50"
-                )}
-            >
-                <Info size={12} />
-            </button>
         </div>
     );
 }
@@ -162,7 +150,6 @@ export default function TypeDock({
     bodyLineHeight, setBodyLineHeight,
     onFilteredListChange,
     isTuneOpen, setIsTuneOpen,
-    onShowFontInfo,
     generateRandomPair,
 }) {
     const dockRef = useRef(null);
@@ -374,7 +361,6 @@ export default function TypeDock({
                     font={primaryFont}
                     isLocked={primaryLocked}
                     onToggleLock={() => setPrimaryLocked(!primaryLocked)}
-                    onInfo={() => onShowFontInfo(primaryFont)}
                     controls={pControls}
                     setControls={setPControls}
                     lhValue={pControls.lh}
@@ -384,7 +370,6 @@ export default function TypeDock({
                     font={secondaryFont}
                     isLocked={secondaryLocked}
                     onToggleLock={() => setSecondaryLocked(!secondaryLocked)}
-                    onInfo={() => onShowFontInfo(secondaryFont)}
                     controls={sControls}
                     setControls={setSControls}
                     lhValue={bodyLineHeight}

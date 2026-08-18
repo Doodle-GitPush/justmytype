@@ -1,21 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { Slider } from "@/components/ui/slider";
 import { FONT_METADATA } from '../data/fonts';
-
-function Control({ label, display, suffix = '', value, onValueChange, ...slider }) {
-    return (
-        <>
-            <div className="flex justify-between items-center mt-6 mb-3 first:mt-0">
-                <span className="text-[13px] font-medium text-muted-foreground">{label}</span>
-                <span className="text-[13px] text-muted-foreground tabular-nums">{display}{suffix}</span>
-            </div>
-            <Slider aria-label={label} value={[value]} onValueChange={onValueChange} {...slider} />
-        </>
-    );
-}
+import ScrubField from './ScrubField';
 
 /**
- * Size / Weight / Line height / Letter spacing sliders for one font.
+ * Size / Weight / Line height / Letter spacing for one font, as Figma-style
+ * scrub fields — drag the label to change, or click the number and type.
+ *
  * `lhValue`/`setLh` are separate from `controls`/`setControls` rather than
  * reading `controls.lh` directly: the secondary font's rendered line-height
  * is actually driven by the app-wide bodyLineHeight, not its own controls.lh
@@ -27,7 +17,6 @@ export default function FontControls({ font, controls, setControls, lhValue, set
 
     // Only offer weights the family actually ships.
     const weights = meta?.weights?.length ? meta.weights : [400];
-    const weightIndex = Math.max(0, weights.indexOf(controls.weight));
 
     // Keep the selected weight valid when the font changes.
     useEffect(() => {
@@ -41,41 +30,43 @@ export default function FontControls({ font, controls, setControls, lhValue, set
     }, [font]);
 
     return (
-        <div className="flex flex-col">
-            <Control
-                label="Size" display={controls.size} suffix="px"
-                min={12} max={120} step={1}
+        <div className="grid grid-cols-2 gap-2">
+            <ScrubField
+                label="Size"
+                suffix="px"
                 value={controls.size}
-                onValueChange={(val) => setControls({ ...controls, size: val[0] })}
+                min={12} max={200} step={1}
+                sensitivity={3}
+                onChange={(v) => setControls({ ...controls, size: v })}
             />
 
-            <div className="flex justify-between items-center mt-6 mb-3">
-                <span className="text-[13px] font-medium text-muted-foreground">Weight</span>
-                <span className="text-[13px] text-muted-foreground tabular-nums">
-                    {controls.weight}
-                    {weights.length === 1 && <span className="ml-1 opacity-60">(only)</span>}
-                </span>
-            </div>
-            <Slider
-                aria-label="Weight"
-                min={0} max={Math.max(0, weights.length - 1)} step={1}
-                value={[weightIndex]}
+            <ScrubField
+                label="Weight"
+                values={weights}
+                value={controls.weight}
+                sensitivity={10}
                 disabled={weights.length === 1}
-                onValueChange={(val) => setControls({ ...controls, weight: weights[val[0]] })}
+                onChange={(v) => setControls({ ...controls, weight: v })}
             />
 
-            <Control
-                label="Line Height" display={lhValue}
-                min={0.8} max={2.5} step={0.05}
+            <ScrubField
+                label="Line"
                 value={lhValue}
-                onValueChange={(val) => setLh(val[0])}
+                min={0.8} max={2.5} step={0.05}
+                precision={2}
+                sensitivity={8}
+                onChange={setLh}
             />
 
-            <Control
-                label="Letter Spacing" display={controls.ls} suffix=" em"
-                min={-0.1} max={0.5} step={0.01}
+            {/* No "em" suffix — it doesn't fit beside a 4-char value in a
+                half-width cell, and the label already implies the unit. */}
+            <ScrubField
+                label="Letter"
                 value={controls.ls}
-                onValueChange={(val) => setControls({ ...controls, ls: val[0] })}
+                min={-0.1} max={0.5} step={0.01}
+                precision={2}
+                sensitivity={8}
+                onChange={(v) => setControls({ ...controls, ls: v })}
             />
         </div>
     );
