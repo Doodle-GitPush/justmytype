@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw } from 'lucide-react';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
-import Presence from './motion/Presence';
 import { stack } from '../lib/typeStyles';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -236,123 +235,6 @@ export default function TypeDock({
             ref={dockRef}
             className="fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-3 px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+78px)] lg:pb-6 pointer-events-none"
         >
-            <Presence
-                show={isTuneOpen}
-                from={{ opacity: 0, y: 16, scale: 0.98 }}
-                to={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.99 }}
-                duration={DUR.base}
-                className="pointer-events-auto w-full max-w-[440px] max-h-[min(65vh,560px)] overflow-y-auto scrollbar-hide bg-background/95 backdrop-blur-xl border border-border rounded-[28px] shadow-2xl p-4 sm:p-5"
-            >
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-[13px] font-semibold text-foreground">Tune</span>
-                    <button
-                        onClick={() => setIsTuneOpen(false)}
-                        aria-label="Close tune panel"
-                        className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
-
-                <Section
-                    icon={Filter}
-                    title="Filters"
-                    aside={
-                        <div className="flex items-center gap-3">
-                            {hasFilters && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider flex items-center gap-1"
-                                >
-                                    <XCircle size={10} strokeWidth={2.5} /> Clear
-                                </button>
-                            )}
-                            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full tabular-nums">
-                                {filteredList.length}
-                            </span>
-                        </div>
-                    }
-                >
-                    <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border">
-                        <div className="flex flex-col gap-3">
-                            <span className="text-[11px] font-medium text-foreground">Category</span>
-                            <div className="flex flex-wrap gap-2">
-                                {CATEGORIES.map(cat => (
-                                    <Pill
-                                        key={cat}
-                                        active={selectedCategories.includes(cat)}
-                                        onClick={() => toggle(selectedCategories, setSelectedCategories)(cat)}
-                                    >
-                                        {cat}
-                                    </Pill>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="h-px bg-border/60 w-full" />
-
-                        <div className="flex flex-col gap-3">
-                            <span className="text-[11px] font-medium text-foreground">Weight & Style</span>
-                            <div className="flex flex-wrap gap-2">
-                                {WEIGHT_GROUPS.map(w => (
-                                    <Pill
-                                        key={w.label}
-                                        active={selectedWeights.includes(w.label)}
-                                        onClick={() => toggle(selectedWeights, setSelectedWeights)(w.label)}
-                                    >
-                                        {w.label}
-                                    </Pill>
-                                ))}
-                                <Pill
-                                    active={requireItalic}
-                                    onClick={() => setRequireItalic(!requireItalic)}
-                                    className="italic"
-                                >
-                                    Italic
-                                </Pill>
-                            </div>
-                        </div>
-                    </div>
-                </Section>
-
-                <Accordion type="multiple" defaultValue={["primary", "secondary"]} className="w-full">
-                    {[
-                        {
-                            value: 'primary', label: 'Primary', font: primaryFont, setFont: setPrimaryFont,
-                            controls: pControls, setControls: setPControls, locked: primaryLocked,
-                            lhValue: pControls.lh, setLh: (v) => setPControls({ ...pControls, lh: v }),
-                        },
-                        {
-                            value: 'secondary', label: 'Secondary', font: secondaryFont, setFont: setSecondaryFont,
-                            controls: sControls, setControls: setSControls, locked: secondaryLocked,
-                            lhValue: bodyLineHeight, setLh: setBodyLineHeight,
-                        },
-                    ].map((item) => (
-                        <AccordionItem key={item.value} value={item.value} className="border-b-0 mb-3 last:mb-0">
-                            <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
-                                <div className="flex flex-col items-start text-left gap-1 min-w-0">
-                                    <span>{item.label} {item.locked && '· Locked'}</span>
-                                    <span className="text-[15px] font-medium text-foreground normal-case tracking-normal truncate max-w-[240px]">
-                                        {item.font}
-                                    </span>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
-                                <FontSection
-                                    font={item.font}
-                                    setFont={item.setFont}
-                                    controls={item.controls}
-                                    setControls={item.setControls}
-                                    lhValue={item.lhValue}
-                                    setLh={item.setLh}
-                                    fontList={filteredList}
-                                />
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
-            </Presence>
 
             {/* The pairing itself — centered above the bar, not tucked in a
                 rail that only existed on desktop. */}
@@ -379,8 +261,145 @@ export default function TypeDock({
 
             <div
                 data-bar
-                className="pointer-events-auto w-full max-w-[640px] flex items-end gap-1.5 bg-background/90 backdrop-blur-xl border border-border rounded-[32px] shadow-xl px-2.5 py-2.5"
+                className="pointer-events-auto w-full max-w-[640px] bg-background/90 backdrop-blur-xl border border-border rounded-[32px] shadow-xl overflow-hidden"
             >
+                {/* Morph region. grid-rows 0fr -> 1fr animates to the content's
+                    natural height without hard-coding one, and the whole dock
+                    is bottom-anchored, so this opens upward on its own. */}
+                <div
+                    className={cn(
+                        "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+                        isTuneOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    )}
+                >
+                    {/* Collapsed, this region stays in the DOM at zero height,
+                        so inert keeps its controls out of the tab order and
+                        away from screen readers. */}
+                    <div className="overflow-hidden">
+                        <div
+                            className="max-h-[min(55vh,460px)] overflow-y-auto scrollbar-hide px-4 pt-4 sm:px-5 sm:pt-5"
+                            {...(isTuneOpen ? {} : { inert: true, 'aria-hidden': 'true' })}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <span className="text-[13px] font-semibold text-foreground">Tune</span>
+                                <button
+                                    onClick={() => setIsTuneOpen(false)}
+                                    aria-label="Close tune panel"
+                                    className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                    <Section
+                        icon={Filter}
+                        title="Filters"
+                        aside={
+                            <div className="flex items-center gap-3">
+                                {hasFilters && (
+                                    <button
+                                        onClick={clearFilters}
+                                        className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider flex items-center gap-1"
+                                    >
+                                        <XCircle size={10} strokeWidth={2.5} /> Clear
+                                    </button>
+                                )}
+                                <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full tabular-nums">
+                                    {filteredList.length}
+                                </span>
+                            </div>
+                        }
+                    >
+                        <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border">
+                            <div className="flex flex-col gap-3">
+                                <span className="text-[11px] font-medium text-foreground">Category</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {CATEGORIES.map(cat => (
+                                        <Pill
+                                            key={cat}
+                                            active={selectedCategories.includes(cat)}
+                                            onClick={() => toggle(selectedCategories, setSelectedCategories)(cat)}
+                                        >
+                                            {cat}
+                                        </Pill>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="h-px bg-border/60 w-full" />
+
+                            <div className="flex flex-col gap-3">
+                                <span className="text-[11px] font-medium text-foreground">Weight & Style</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {WEIGHT_GROUPS.map(w => (
+                                        <Pill
+                                            key={w.label}
+                                            active={selectedWeights.includes(w.label)}
+                                            onClick={() => toggle(selectedWeights, setSelectedWeights)(w.label)}
+                                        >
+                                            {w.label}
+                                        </Pill>
+                                    ))}
+                                    <Pill
+                                        active={requireItalic}
+                                        onClick={() => setRequireItalic(!requireItalic)}
+                                        className="italic"
+                                    >
+                                        Italic
+                                    </Pill>
+                                </div>
+                            </div>
+                        </div>
+                    </Section>
+
+                    <Accordion type="multiple" defaultValue={["primary", "secondary"]} className="w-full">
+                        {[
+                            {
+                                value: 'primary', label: 'Primary', font: primaryFont, setFont: setPrimaryFont,
+                                controls: pControls, setControls: setPControls, locked: primaryLocked,
+                                lhValue: pControls.lh, setLh: (v) => setPControls({ ...pControls, lh: v }),
+                            },
+                            {
+                                value: 'secondary', label: 'Secondary', font: secondaryFont, setFont: setSecondaryFont,
+                                controls: sControls, setControls: setSControls, locked: secondaryLocked,
+                                lhValue: bodyLineHeight, setLh: setBodyLineHeight,
+                            },
+                        ].map((item) => (
+                            <AccordionItem key={item.value} value={item.value} className="border-b-0 mb-3 last:mb-0">
+                                <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
+                                    <div className="flex flex-col items-start text-left gap-1 min-w-0">
+                                        <span>{item.label} {item.locked && '· Locked'}</span>
+                                        <span className="text-[15px] font-medium text-foreground normal-case tracking-normal truncate max-w-[240px]">
+                                            {item.font}
+                                        </span>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-5 px-4 pb-5 border border-t-0 rounded-b-xl bg-card/50">
+                                    <FontSection
+                                        font={item.font}
+                                        setFont={item.setFont}
+                                        controls={item.controls}
+                                        setControls={item.setControls}
+                                        lhValue={item.lhValue}
+                                        setLh={item.setLh}
+                                        fontList={filteredList}
+                                    />
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+
+                            <div className="h-3" />
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    className={cn(
+                        "flex items-end gap-1.5 px-2.5 py-2.5 transition-[border-color] duration-300",
+                        isTuneOpen ? "border-t border-border/70" : "border-t border-transparent"
+                    )}
+                >
                 <button
                     onClick={() => setIsTuneOpen(v => !v)}
                     aria-pressed={isTuneOpen}
@@ -423,6 +442,7 @@ export default function TypeDock({
                         <RefreshCw size={16} />
                     </span>
                 </button>
+                </div>
             </div>
         </div>
     );
