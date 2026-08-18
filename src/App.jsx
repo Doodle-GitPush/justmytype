@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, RefreshCw, PanelLeft, Download, Printer, ChevronDown, Keyboard } from 'lucide-react';
-import Sidebar from './components/Sidebar';
+import { Moon, Sun, Check, Copy, RefreshCw, Download, Printer, ChevronDown, Keyboard } from 'lucide-react';
+import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
 import FontInfoPanel from './components/FontInfoPanel';
@@ -28,23 +28,23 @@ const SHORTCUTS = [
   { keys: ['L'], label: 'Lock / unlock primary font' },
   { keys: ['K'], label: 'Lock / unlock secondary font' },
   { keys: ['D'], label: 'Toggle dark mode' },
-  { keys: ['1'], label: 'Article preview' },
-  { keys: ['2'], label: 'Hero preview' },
-  { keys: ['3'], label: 'Cards preview' },
-  { keys: ['4'], label: 'Specimen preview' },
-  { keys: ['5'], label: 'Poster preview' },
+  { keys: ['1'], label: 'Focus preview' },
+  { keys: ['2'], label: 'Article preview' },
+  { keys: ['3'], label: 'Hero preview' },
+  { keys: ['4'], label: 'Cards preview' },
+  { keys: ['5'], label: 'Specimen preview' },
+  { keys: ['6'], label: 'Poster preview' },
   { keys: ['?'], label: 'Show this shortcuts panel' },
   { keys: ['Esc'], label: 'Close any panel' },
 ];
 
 export default function App() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isTuneOpen, setIsTuneOpen] = useState(false);
   const [isDark, setIsDark] = useState(() =>
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
   const [theme, setTheme] = useState('blue');
-  const [activeTab, setActiveTab] = useState('article');
+  const [activeTab, setActiveTab] = useState('focus');
   const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -167,6 +167,7 @@ export default function App() {
           setShowShortcuts(false);
           setInfoFont(null);
           setExportOpen(false);
+          setIsTuneOpen(false);
           break;
         default: break;
       }
@@ -311,41 +312,8 @@ export default function App() {
           </div>
         </Presence>
 
-        {/* Floating sidebar re-open (desktop) */}
-        <Presence
-          show={!isDesktopSidebarOpen}
-          from={{ opacity: 0, x: -20 }} to={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-          duration={DUR.fast}
-          className="hidden lg:block absolute top-5 left-6 z-50"
-        >
-          <button
-            onClick={() => setIsDesktopSidebarOpen(true)}
-            aria-label="Open sidebar"
-            className="p-2.5 bg-background/80 backdrop-blur border border-border rounded-xl shadow-sm text-foreground hover:bg-muted transition-all hover:scale-105 active:scale-95"
-          >
-            <PanelLeft size={18} />
-          </button>
-        </Presence>
-
-        {/* Mobile sidebar scrim */}
-        <Presence
-          show={isSidebarOpen}
-          from={{ opacity: 0 }} to={{ opacity: 1 }} exit={{ opacity: 0 }}
-          duration={DUR.fast}
-          className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            aria-label="Open font controls"
-            className="w-11 h-11 bg-background/80 backdrop-blur border border-border text-foreground rounded-full shadow-sm flex items-center justify-center hover:bg-muted transition-all shrink-0 active:scale-95"
-          >
-            <span className="font-serif italic text-lg font-bold mt-0.5">Aa</span>
-          </button>
-
+        <header className="lg:hidden flex items-center justify-end px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
             <button
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors hover:bg-muted active:scale-95 ${copied ? 'text-emerald-600' : copyError ? 'text-destructive' : 'text-foreground'}`}
@@ -369,7 +337,7 @@ export default function App() {
         <button
           onClick={generateRandomPair}
           aria-label="Generate new font pair"
-          className="lg:hidden fixed bottom-[90px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_hsl(var(--primary)/0.35)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
+          className="lg:hidden fixed bottom-[168px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_hsl(var(--primary)/0.35)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
         >
           <RefreshCw size={24} />
         </button>
@@ -473,18 +441,17 @@ export default function App() {
           {exportError}
         </Presence>
 
-        <Sidebar
-          isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
-          isDesktopOpen={isDesktopSidebarOpen} setDesktopOpen={setIsDesktopSidebarOpen}
+        <TypeDock
+          sampleText={sampleText} setSampleText={setSampleText}
           primaryFont={primaryFont} setPrimaryFont={setPrimaryFont}
           secondaryFont={secondaryFont} setSecondaryFont={setSecondaryFont}
           pControls={primaryControls} setPControls={setPrimaryControls}
           sControls={secondaryControls} setSControls={setSecondaryControls}
-          sampleText={sampleText} setSampleText={setSampleText}
           primaryLocked={primaryLocked} secondaryLocked={secondaryLocked}
           fontList={FONTS}
           bodyLineHeight={bodyLineHeight} setBodyLineHeight={setBodyLineHeight}
           onFilteredListChange={setFilteredFonts}
+          isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
         />
 
         <PreviewArea

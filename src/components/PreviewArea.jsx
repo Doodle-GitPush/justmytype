@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { SAMPLE } from '../data/content';
 import { typeStyle } from '../lib/typeStyles';
+import FocusPreview from './previews/FocusPreview';
 import ArticlePreview from './previews/ArticlePreview';
 import HeroPreview from './previews/HeroPreview';
 import CardsPreview from './previews/CardsPreview';
@@ -9,6 +10,7 @@ import SpecimenPreview from './previews/SpecimenPreview';
 import PosterPreview from './previews/PosterPreview';
 
 const VIEWS = {
+  focus: FocusPreview,
   article: ArticlePreview,
   hero: HeroPreview,
   cards: CardsPreview,

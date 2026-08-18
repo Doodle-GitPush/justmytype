@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { X, PanelLeft, Filter, XCircle, AlignLeft, Type } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, AlignLeft } from 'lucide-react';
 import FontSection from './FontSection';
-import { Textarea } from "@/components/ui/textarea";
+import Presence from './motion/Presence';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
 import { FONT_METADATA } from '../data/fonts';
@@ -15,7 +15,6 @@ const WEIGHT_GROUPS = [
     { label: 'Bold', min: 600, max: 900 }
 ];
 
-/** Shared shape for the small pill toggles used across the filter block. */
 function Pill({ active, onClick, children, className }) {
     return (
         <button
@@ -36,7 +35,7 @@ function Pill({ active, onClick, children, className }) {
 
 function Section({ icon: Icon, title, aside, children }) {
     return (
-        <div data-panel className="flex flex-col mb-6">
+        <div className="flex flex-col mb-5 last:mb-0">
             <div className="flex items-center justify-between mb-3 pl-1">
                 <div className="flex items-center gap-2">
                     <Icon size={12} className="text-muted-foreground" />
@@ -51,20 +50,28 @@ function Section({ icon: Icon, title, aside, children }) {
     );
 }
 
-export default function Sidebar({
+/**
+ * The app's one bottom-anchored control surface: a chat-style input whose
+ * text becomes the specimen's dummy text (bound live, no submit step), plus
+ * a "Tune" drawer that absorbs everything the old left sidebar held —
+ * category/weight/italic filters, line height, and the per-font search +
+ * size/weight/leading/tracking controls. Nothing lost, just tucked away by
+ * default so the type stays the thing you're looking at.
+ */
+export default function TypeDock({
+    sampleText, setSampleText,
     primaryFont, setPrimaryFont,
     secondaryFont, setSecondaryFont,
     pControls, setPControls,
     sControls, setSControls,
-    sampleText, setSampleText,
     primaryLocked, secondaryLocked,
-    isOpen, onClose,
-    isDesktopOpen, setDesktopOpen,
     fontList,
     bodyLineHeight, setBodyLineHeight,
     onFilteredListChange,
+    isTuneOpen, setIsTuneOpen,
 }) {
-    const scope = useRef(null);
+    const dockRef = useRef(null);
+    const textareaRef = useRef(null);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedWeights, setSelectedWeights] = useState([]);
     const [requireItalic, setRequireItalic] = useState(false);
@@ -98,68 +105,65 @@ export default function Sidebar({
         if (onFilteredListChange) onFilteredListChange(filteredList);
     }, [filteredList]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useGSAP(
-        () => {
-            if (prefersReducedMotion()) return;
-            gsap.from(gsap.utils.selector(scope)('[data-panel]'), {
-                opacity: 0,
-                x: -18,
-                duration: DUR.slow,
-                ease: EASE.out,
-                stagger: 0.06,
-                delay: 0.05,
-            });
-        },
-        { scope }
-    );
-
     const toggle = (list, setList) => (value) =>
         setList(list.includes(value) ? list.filter(v => v !== value) : [...list, value]);
 
-    return (
-        <aside
-            ref={scope}
-            className={`
-                fixed lg:relative top-0 left-0 z-50 h-[100dvh] lg:h-full flex flex-col bg-background/95 lg:bg-background/60 backdrop-blur-3xl transition-all duration-300 overflow-hidden shrink-0
-                ${isOpen ? 'translate-x-0 shadow-2xl border-r border-border' : '-translate-x-full lg:shadow-none'}
-                ${isDesktopOpen ? 'lg:w-80 lg:min-w-[320px] lg:border-r lg:border-border lg:translate-x-0 lg:opacity-100' : 'lg:w-0 lg:min-w-0 lg:border-none lg:-translate-x-full lg:opacity-0 lg:p-0'}
-                w-[85vw] max-w-[320px]
-            `}
-        >
-            <div className="w-[85vw] max-w-[320px] lg:w-80 h-[100dvh] lg:h-full overflow-y-auto overflow-x-hidden p-5 lg:p-6 lg:pb-2 flex flex-col scrollbar-hide pt-10 lg:pt-6">
-                <div data-panel className="flex items-center justify-between mb-7 pl-1">
-                    <div className="text-2xl font-light tracking-tight text-foreground">
-                        JustMy<span className="font-extrabold">Type</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setDesktopOpen(false)}
-                            aria-label="Collapse sidebar"
-                            className="hidden lg:flex p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                        >
-                            <PanelLeft size={20} />
-                        </button>
-                        <button
-                            onClick={onClose}
-                            aria-label="Close sidebar"
-                            className="lg:hidden p-2 bg-muted/50 rounded-full text-muted-foreground hover:text-foreground"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-                </div>
+    // Auto-grow the textarea with content, capped so it can't swallow the screen.
+    useEffect(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    }, [sampleText]);
 
-                <Section icon={Type} title="Sample Text">
-                    <div className="bg-card rounded-xl overflow-hidden p-4 border focus-within:ring-2 focus-within:ring-ring/40 transition-shadow">
-                        <Textarea
-                            className="w-full border-none outline-none bg-transparent text-[13px] text-foreground leading-relaxed resize-none min-h-[80px] p-0 focus-visible:ring-0 shadow-none"
-                            placeholder="Type something to preview…"
-                            value={sampleText}
-                            onChange={(e) => setSampleText(e.target.value)}
-                            aria-label="Sample text"
-                        />
-                    </div>
-                </Section>
+    // Click outside the dock closes the Tune drawer.
+    useEffect(() => {
+        if (!isTuneOpen) return;
+        const handler = (e) => {
+            if (dockRef.current && !dockRef.current.contains(e.target)) setIsTuneOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isTuneOpen, setIsTuneOpen]);
+
+    // Entrance for the bar itself.
+    useGSAP(
+        () => {
+            if (prefersReducedMotion()) return;
+            gsap.from(gsap.utils.selector(dockRef)('[data-bar]'), {
+                opacity: 0,
+                y: 24,
+                duration: DUR.slow,
+                ease: EASE.out,
+                delay: 0.15,
+            });
+        },
+        { scope: dockRef }
+    );
+
+    return (
+        <div
+            ref={dockRef}
+            className="fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-3 px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+78px)] lg:pb-6 pointer-events-none"
+        >
+            <Presence
+                show={isTuneOpen}
+                from={{ opacity: 0, y: 16, scale: 0.98 }}
+                to={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.99 }}
+                duration={DUR.base}
+                className="pointer-events-auto w-full max-w-[440px] max-h-[min(65vh,560px)] overflow-y-auto scrollbar-hide bg-background/95 backdrop-blur-xl border border-border rounded-[22px] shadow-2xl p-4 sm:p-5"
+            >
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-[13px] font-semibold text-foreground">Tune</span>
+                    <button
+                        onClick={() => setIsTuneOpen(false)}
+                        aria-label="Close tune panel"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
 
                 <Section
                     icon={Filter}
@@ -245,16 +249,16 @@ export default function Sidebar({
                     </div>
                 </Section>
 
-                <Accordion type="multiple" defaultValue={["primary", "secondary"]} className="w-full mb-6 relative z-10">
+                <Accordion type="multiple" defaultValue={["primary", "secondary"]} className="w-full">
                     {[
                         { value: 'primary', label: 'Primary', font: primaryFont, setFont: setPrimaryFont, controls: pControls, setControls: setPControls, locked: primaryLocked },
                         { value: 'secondary', label: 'Secondary', font: secondaryFont, setFont: setSecondaryFont, controls: sControls, setControls: setSControls, locked: secondaryLocked },
                     ].map((item) => (
-                        <AccordionItem key={item.value} value={item.value} className="border-b-0 mb-3" data-panel>
+                        <AccordionItem key={item.value} value={item.value} className="border-b-0 mb-3 last:mb-0">
                             <AccordionTrigger className="w-full py-3 px-4 bg-card border rounded-xl data-[state=open]:rounded-b-none data-[state=open]:border-b-0 hover:no-underline font-semibold text-[10px] uppercase tracking-widest text-muted-foreground transition-all focus:ring-0">
                                 <div className="flex flex-col items-start text-left gap-1 min-w-0">
                                     <span>{item.label} {item.locked && '· Locked'}</span>
-                                    <span className="text-[15px] font-medium text-foreground normal-case tracking-normal truncate max-w-[190px]">
+                                    <span className="text-[15px] font-medium text-foreground normal-case tracking-normal truncate max-w-[240px]">
                                         {item.font}
                                     </span>
                                 </div>
@@ -271,7 +275,44 @@ export default function Sidebar({
                         </AccordionItem>
                     ))}
                 </Accordion>
+            </Presence>
+
+            <div
+                data-bar
+                className="pointer-events-auto w-full max-w-[640px] flex items-end gap-1.5 bg-background/90 backdrop-blur-xl border border-border rounded-[26px] shadow-xl px-2.5 py-2.5"
+            >
+                <button
+                    onClick={() => setIsTuneOpen(v => !v)}
+                    aria-pressed={isTuneOpen}
+                    aria-label="Tune fonts, filters and weight"
+                    className={cn(
+                        "shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors",
+                        isTuneOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                >
+                    <SlidersHorizontal size={16} />
+                </button>
+
+                <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    value={sampleText}
+                    onChange={(e) => setSampleText(e.target.value)}
+                    placeholder="Type your own text…"
+                    aria-label="Sample text"
+                    className="flex-1 resize-none bg-transparent outline-none text-[14px] text-foreground placeholder:text-muted-foreground/50 leading-relaxed py-1.5 px-1 max-h-[160px] scrollbar-hide"
+                />
+
+                {sampleText && (
+                    <button
+                        onClick={() => setSampleText('')}
+                        aria-label="Clear sample text"
+                        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                        <X size={15} />
+                    </button>
+                )}
             </div>
-        </aside>
+        </div>
     );
 }
