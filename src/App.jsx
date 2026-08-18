@@ -485,8 +485,9 @@ export default function App() {
           activeTab={activeTab} setActiveTab={setActiveTab}
         />
 
-        <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground z-40 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
-          Made with ❤️ by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary transition-colors underline decoration-border underline-offset-2">Priyansh Jolapara</a>
+        {/* Plain line, no pill — this is a credit, not a control. */}
+        <div className="fixed bottom-3 right-4 lg:bottom-5 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground/70 z-40 transition-opacity hover:opacity-100 hidden sm:flex items-center gap-1">
+          Onboarded by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors">Priyansh</a>
         </div>
 
         <Analytics />
