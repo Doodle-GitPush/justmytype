@@ -93,10 +93,11 @@ export default function Preloader({ ready, onFinish }) {
     >
       <div
         ref={typeRef}
-        className="overflow-hidden whitespace-nowrap border-r-[3px] pr-1 font-mono text-[clamp(28px,6vw,44px)] font-medium tracking-tight text-foreground"
+        className="overflow-hidden whitespace-nowrap border-r-[3px] pr-1 font-sans text-[clamp(18px,3.6vw,28px)] tracking-tight text-foreground"
         style={{ borderRightColor: CURSOR_BLUE }}
       >
-        {WORD}
+        <span className="font-medium">JustMy</span>
+        <span className="font-bold">Type</span>
       </div>
       <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         {exiting ? 'Ready' : 'Loading typefaces…'}
