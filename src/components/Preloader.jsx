@@ -2,9 +2,7 @@ import { useRef, useState } from 'react';
 import { gsap, useGSAP, EASE, prefersReducedMotion } from '@/lib/gsap';
 
 const WORD = 'JustMyType';
-// Hardcoded rather than pulled from the accent theme — a terminal caret is
-// blue regardless of which accent colour the user picks later.
-const CURSOR_BLUE = '#0a84ff';
+const CURSOR_COLOR = '#FF4400';
 
 /**
  * Boot screen: the wordmark reveals itself through a widening clip in a
@@ -29,15 +27,20 @@ export default function Preloader({ ready, onFinish }) {
       if (!el) return;
 
       if (prefersReducedMotion()) {
-        gsap.set(el, { width: `${WORD.length}ch`, borderRightColor: CURSOR_BLUE });
+        gsap.set(el, { borderRightColor: CURSOR_COLOR });
         setTypingDone(true);
         return;
       }
 
-      gsap.set(el, { width: 0, borderRightColor: CURSOR_BLUE });
+      // `ch` is the width of "0" in the current font — a fine stand-in for
+      // a monospace face, but Wanted Sans is proportional, so it landed the
+      // cursor short or past the real last glyph. Measuring the element's
+      // own natural width before clipping it keeps the two in sync.
+      const fullWidth = el.scrollWidth;
+      gsap.set(el, { width: 0, borderRightColor: CURSOR_COLOR });
 
       gsap.to(el, {
-        width: `${WORD.length}ch`,
+        width: fullWidth,
         duration: 0.55,
         ease: `steps(${WORD.length})`,
         onComplete: () => setTypingDone(true),
@@ -91,8 +94,8 @@ export default function Preloader({ ready, onFinish }) {
     >
       <div
         ref={typeRef}
-        className="overflow-hidden whitespace-nowrap border-r-[6px] pr-1 font-sans text-[clamp(18px,3.6vw,28px)] tracking-tight text-foreground"
-        style={{ borderRightColor: CURSOR_BLUE }}
+        className="overflow-hidden whitespace-nowrap border-r-[6px] font-sans text-[clamp(18px,3.6vw,28px)] tracking-tight text-foreground"
+        style={{ borderRightColor: CURSOR_COLOR }}
       >
         <span className="font-medium">JustMy</span>
         <span className="font-bold">Type</span>
