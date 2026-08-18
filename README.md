@@ -7,11 +7,10 @@ them in real layouts, tune size/weight/leading/tracking, and copy the CSS out.
 
 | Mode | What it shows |
 |---|---|
+| **Focus** | Big centered display type — the default view, built to show the pairing itself |
 | **Article** | Long-form editorial layout — heading, lead, body, pull quote, lists |
 | **Hero** | A full marketing page inside a browser mockup, with scroll-driven sections |
-| **Cards** | A three-card grid, for testing type at small sizes |
 | **Specimen** | Side-by-side alphabet, numerals and punctuation for both faces |
-| **Poster** | A full-bleed animated type specimen built to show the pairing off |
 
 ## Motion
 
@@ -36,7 +35,7 @@ Every animation checks `prefers-reduced-motion` and degrades to a static layout.
 ## Keyboard shortcuts
 
 `Space` new pair · `L`/`K` lock primary/secondary · `D` dark mode ·
-`1`–`5` preview modes · `?` shortcuts · `Esc` close
+`1`–`4` preview modes · `?` shortcuts · `Esc` close
 
 ## Local development
 

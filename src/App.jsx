@@ -31,9 +31,7 @@ const SHORTCUTS = [
   { keys: ['1'], label: 'Focus preview' },
   { keys: ['2'], label: 'Article preview' },
   { keys: ['3'], label: 'Hero preview' },
-  { keys: ['4'], label: 'Cards preview' },
-  { keys: ['5'], label: 'Specimen preview' },
-  { keys: ['6'], label: 'Poster preview' },
+  { keys: ['4'], label: 'Specimen preview' },
   { keys: ['?'], label: 'Show this shortcuts panel' },
   { keys: ['Esc'], label: 'Close any panel' },
 ];
