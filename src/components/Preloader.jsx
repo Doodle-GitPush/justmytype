@@ -20,7 +20,6 @@ export default function Preloader({ ready, onFinish }) {
   const root = useRef(null);
   const typeRef = useRef(null);
   const [typingDone, setTypingDone] = useState(false);
-  const [exiting, setExiting] = useState(false);
   const exitStarted = useRef(false);
 
   // Type-in + caret blink.
@@ -39,7 +38,7 @@ export default function Preloader({ ready, onFinish }) {
 
       gsap.to(el, {
         width: `${WORD.length}ch`,
-        duration: 1.1,
+        duration: 0.55,
         ease: `steps(${WORD.length})`,
         onComplete: () => setTypingDone(true),
       });
@@ -65,8 +64,7 @@ export default function Preloader({ ready, onFinish }) {
       const reduced = prefersReducedMotion();
       const el = root.current;
 
-      gsap.delayedCall(reduced ? 0 : 0.35, () => {
-        setExiting(true);
+      gsap.delayedCall(reduced ? 0 : 0.15, () => {
         if (!el || reduced) {
           onFinish();
           return;
@@ -74,7 +72,7 @@ export default function Preloader({ ready, onFinish }) {
         gsap.to(el, {
           opacity: 0,
           scale: 1.02,
-          duration: 0.5,
+          duration: 0.35,
           ease: EASE.in,
           onComplete: onFinish,
         });
@@ -89,7 +87,7 @@ export default function Preloader({ ready, onFinish }) {
       role="status"
       aria-live="polite"
       aria-label="Loading JustMyType"
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-background"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background"
     >
       <div
         ref={typeRef}
@@ -99,9 +97,6 @@ export default function Preloader({ ready, onFinish }) {
         <span className="font-medium">JustMy</span>
         <span className="font-bold">Type</span>
       </div>
-      <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-        {exiting ? 'Ready' : 'Loading typefaces…'}
-      </span>
     </div>
   );
 }
