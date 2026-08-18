@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, AlignLeft, Lock, Unlock, Info } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, AlignLeft, Lock, Unlock, Info, RefreshCw } from 'lucide-react';
 import FontSection from './FontSection';
 import Presence from './motion/Presence';
 import { stack } from '../lib/typeStyles';
@@ -136,9 +136,11 @@ export default function TypeDock({
     onFilteredListChange,
     isTuneOpen, setIsTuneOpen,
     onShowFontInfo,
+    generateRandomPair,
 }) {
     const dockRef = useRef(null);
     const textareaRef = useRef(null);
+    const spinRef = useRef(null);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedWeights, setSelectedWeights] = useState([]);
     const [requireItalic, setRequireItalic] = useState(false);
@@ -174,6 +176,13 @@ export default function TypeDock({
 
     const toggle = (list, setList) => (value) =>
         setList(list.includes(value) ? list.filter(v => v !== value) : [...list, value]);
+
+    const handleGenerate = () => {
+        generateRandomPair();
+        if (spinRef.current && !prefersReducedMotion()) {
+            gsap.fromTo(spinRef.current, { rotate: 0 }, { rotate: 360, duration: 0.6, ease: 'back.out(1.4)' });
+        }
+    };
 
     // Auto-grow the textarea with content, capped so it can't swallow the screen.
     useEffect(() => {
@@ -396,6 +405,17 @@ export default function TypeDock({
                         <X size={15} />
                     </button>
                 )}
+
+                <button
+                    onClick={handleGenerate}
+                    aria-label="Generate new font pair"
+                    title="Generate new font pair (Space)"
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:bg-primary/95 shadow-[0_4px_16px_hsl(var(--primary)/0.3)] transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                    <span ref={spinRef} className="flex">
+                        <RefreshCw size={16} />
+                    </span>
+                </button>
             </div>
         </div>
     );

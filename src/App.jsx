@@ -333,15 +333,6 @@ export default function App() {
           </div>
         </header>
 
-        {/* Mobile generate FAB */}
-        <button
-          onClick={generateRandomPair}
-          aria-label="Generate new font pair"
-          className="lg:hidden fixed bottom-[228px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_hsl(var(--primary)/0.35)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
-        >
-          <RefreshCw size={24} />
-        </button>
-
         {/* Mobile tab bar */}
         <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-md border-t border-border z-40 px-2 py-2">
           <div className="flex items-center justify-center gap-1 overflow-x-auto scrollbar-hide max-w-md mx-auto">
@@ -454,6 +445,7 @@ export default function App() {
           onFilteredListChange={setFilteredFonts}
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
           onShowFontInfo={setInfoFont}
+          generateRandomPair={generateRandomPair}
         />
 
         <PreviewArea
@@ -468,7 +460,6 @@ export default function App() {
         <RightTabs
           activeTab={activeTab} setActiveTab={setActiveTab}
           THEMES={THEMES} theme={theme} setTheme={setTheme}
-          generateRandomPair={generateRandomPair}
         />
 
         <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground z-40 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">

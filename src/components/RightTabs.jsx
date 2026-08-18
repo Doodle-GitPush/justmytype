@@ -1,17 +1,15 @@
 import { useRef, useLayoutEffect } from 'react';
-import { RefreshCw, Keyboard } from 'lucide-react';
+import { Keyboard } from 'lucide-react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { TABS } from '../data/constants';
 
 export default function RightTabs({
     activeTab, setActiveTab,
     THEMES, theme, setTheme,
-    generateRandomPair,
 }) {
     const scope = useRef(null);
     const listRef = useRef(null);
     const indicatorRef = useRef(null);
-    const spinRef = useRef(null);
 
     // Rail entrance.
     useGSAP(
@@ -54,17 +52,6 @@ export default function RightTabs({
             overwrite: 'auto',
         });
     }, [activeTab]);
-
-    const handleGenerate = () => {
-        generateRandomPair();
-        if (spinRef.current && !prefersReducedMotion()) {
-            gsap.fromTo(
-                spinRef.current,
-                { rotate: 0 },
-                { rotate: 360, duration: 0.6, ease: 'back.out(1.4)' }
-            );
-        }
-    };
 
     return (
         <nav
@@ -136,21 +123,6 @@ export default function RightTabs({
                     <Keyboard size={12} />
                     Keyboard shortcuts
                     <kbd className="text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded font-mono">?</kbd>
-                </button>
-            </div>
-
-            <div data-rail className="mt-2 pt-5 border-t border-border">
-                <button
-                    className="w-full h-12 rounded-xl text-[14px] font-semibold shadow-[0_4px_16px_hsl(var(--primary)/0.25)] flex items-center justify-center gap-2.5 text-primary-foreground bg-primary hover:bg-primary/95 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-                    onClick={handleGenerate}
-                >
-                    <span ref={spinRef} className="flex">
-                        <RefreshCw size={18} />
-                    </span>
-                    Generate Pair
-                    <kbd className="hidden lg:inline text-[10px] px-1.5 py-0.5 bg-white/20 border border-white/30 rounded font-mono ml-1">
-                        Space
-                    </kbd>
                 </button>
             </div>
         </nav>
