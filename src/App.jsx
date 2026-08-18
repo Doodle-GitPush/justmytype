@@ -301,16 +301,6 @@ export default function App() {
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-end px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
-            <button
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors hover:bg-muted active:scale-95 ${copied ? 'text-emerald-600' : copyError ? 'text-destructive' : 'text-foreground'}`}
-              onClick={handleCopyCss}
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copied ? 'Copied' : copyError ? 'Failed' : 'Copy'}</span>
-            </button>
-
-            <div className="w-px h-3.5 bg-border mx-0.5" />
-
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-full">
               <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
               <Switch checked={isDark} onCheckedChange={setIsDark} aria-label="Dark mode" className="scale-[0.85] origin-center -mx-0.5" />
