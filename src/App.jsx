@@ -473,8 +473,22 @@ export default function App() {
           onShowFontInfo={setInfoFont}
         />
 
-        <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground z-40 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
-          Made with ❤️ by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary transition-colors underline decoration-border underline-offset-2">Priyansh Jolapara</a>
+        {/* Font-pairing badge — only meaningful while Focus's big centered
+            word has no room of its own to name the fonts. Stacks above the
+            credit rather than needing its own guessed offset. */}
+        <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 z-40 flex flex-col items-end gap-2">
+          <Presence
+            show={activeTab === 'focus'}
+            from={{ opacity: 0, y: 8 }} to={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
+            duration={DUR.fast}
+            className="hidden sm:flex text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm items-center gap-1"
+          >
+            {primaryFont} <span className="opacity-50">+</span> {secondaryFont}
+          </Presence>
+
+          <div className="text-[10px] sm:text-[11px] font-medium text-muted-foreground bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
+            Made with ❤️ by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary transition-colors underline decoration-border underline-offset-2">Priyansh Jolapara</a>
+          </div>
         </div>
 
         <Analytics />

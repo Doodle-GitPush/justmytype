@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
-import { useSoftReveal } from '../../hooks/useTypeReveal';
 import { SAMPLE } from '../../data/content';
 import { stack } from '../../lib/typeStyles';
 
@@ -16,10 +15,9 @@ const sizeFor = (len) => {
   return 'clamp(44px,10.5vw,168px)';
 };
 
-export default function FocusPreview({ sStyle, primaryFont, secondaryFont, pControls, sControls, text, revealKey }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
-  const captionScope = useSoftReveal({ deps: [revealKey], delay: 0.5 });
 
   // What's actually painted right now — lags the incoming props until a
   // blur-out has something real to fade away from before swapping in.
@@ -87,7 +85,7 @@ export default function FocusPreview({ sStyle, primaryFont, secondaryFont, pCont
   );
 
   return (
-    <div ref={captionScope} className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
+    <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
       <div
         ref={wordRef}
         className="max-w-[1100px] leading-[0.98] tracking-tight text-foreground [text-wrap:balance] hyphens-none"
@@ -98,18 +96,10 @@ export default function FocusPreview({ sStyle, primaryFont, secondaryFont, pCont
 
       <div
         ref={subRef}
-        className="mt-5 sm:mt-7 max-w-[560px] text-[15px] sm:text-[17px] leading-relaxed text-muted-foreground [text-wrap:balance]"
+        className="mt-5 sm:mt-7 max-w-[620px] text-[15px] sm:text-[17px] leading-relaxed text-muted-foreground [text-wrap:balance]"
         style={{ fontFamily: stack(shown.secondaryFont), fontWeight: shown.sWeight, letterSpacing: `${sControls.ls}em` }}
       >
-        {SAMPLE.heroSub}
-      </div>
-
-      <div
-        data-reveal
-        className="mt-6 sm:mt-8 text-[11px] sm:text-[12px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70"
-        style={{ fontFamily: sStyle.fontFamily }}
-      >
-        {primaryFont} <span className="opacity-50">+</span> {secondaryFont}
+        {SAMPLE.lead}
       </div>
     </div>
   );
