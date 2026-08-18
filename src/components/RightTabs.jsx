@@ -5,13 +5,17 @@ import { TABS } from '../data/constants';
 import { cn } from "@/lib/utils";
 
 /**
- * Preview-mode switcher as a hover-expanding pill on the right edge.
+ * Preview-mode switcher as a hover-expanding pill, bottom-left, sitting at
+ * the same height as the bottom bar.
  *
  * Collapsed it shows only the active mode; hovering (or focusing anything
- * inside, so keyboard users get the same thing) reveals the rest. It's
- * fixed rather than a flex child now — the old rail reserved 268px of
- * layout width permanently to display four buttons, and the preview gets
- * that space back.
+ * inside, so keyboard users get the same thing) reveals the rest. Because
+ * it's anchored by `bottom`, growing taller extends it upward on its own —
+ * no transform needed to open in that direction.
+ *
+ * It's fixed rather than a flex child: the old right rail reserved 268px of
+ * layout width permanently to display four buttons, and the preview keeps
+ * that space now.
  */
 export default function RightTabs({ activeTab, setActiveTab }) {
     const scope = useRef(null);
@@ -22,7 +26,7 @@ export default function RightTabs({ activeTab, setActiveTab }) {
             if (prefersReducedMotion()) return;
             gsap.from(scope.current, {
                 opacity: 0,
-                x: 24,
+                y: 24,
                 duration: DUR.slow,
                 ease: EASE.out,
                 delay: 0.2,
@@ -41,7 +45,7 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                 // Only collapse once focus has left the pill entirely.
                 if (!e.currentTarget.contains(e.relatedTarget)) setExpanded(false);
             }}
-            className="hidden lg:flex fixed right-6 top-1/2 -translate-y-1/2 z-40 flex-col items-end gap-2"
+            className="hidden lg:flex fixed left-6 bottom-6 z-40 flex-col items-start gap-2"
             aria-label="Preview mode"
         >
             <div

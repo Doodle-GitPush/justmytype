@@ -75,9 +75,7 @@ export default function PreviewArea({
   return (
     <main
       id="jmt-preview-area"
-      /* lg:pr-24 keeps content clear of the mode pill, which is fixed to the
-         right edge and so no longer reserves layout width of its own. */
-      className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:pl-6 lg:pr-24 pb-28 lg:pb-7 bg-background relative"
+      className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:px-6 pb-28 lg:pb-7 bg-background relative"
     >
       <div className="flex-1 flex flex-col overflow-visible lg:overflow-y-auto scrollbar-hide relative min-h-0 pt-2">
         <div ref={stage} className="flex-1 flex flex-col">
