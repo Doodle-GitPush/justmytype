@@ -1,4 +1,7 @@
-import { useTypeReveal, useSoftReveal } from '../../hooks/useTypeReveal';
+import { useRef, useState } from 'react';
+import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
+import { useSoftReveal } from '../../hooks/useTypeReveal';
+import { SAMPLE } from '../../data/content';
 import { stack } from '../../lib/typeStyles';
 
 /**
@@ -7,46 +10,103 @@ import { stack } from '../../lib/typeStyles';
  * paragraph and a single word can't share one clamp.
  */
 const sizeFor = (len) => {
-  if (len > 70) return 'clamp(20px,4.5vw,48px)';
-  if (len > 40) return 'clamp(26px,6vw,72px)';
-  if (len > 20) return 'clamp(34px,8vw,110px)';
-  return 'clamp(48px,12vw,190px)';
+  if (len > 70) return 'clamp(20px,4vw,44px)';
+  if (len > 40) return 'clamp(26px,5.5vw,64px)';
+  if (len > 20) return 'clamp(32px,7vw,96px)';
+  return 'clamp(44px,10.5vw,168px)';
 };
 
-export default function FocusPreview({ sStyle, primaryFont, secondaryFont, pControls, text, revealKey }) {
-  // Caption fades in once the big word has mostly finished revealing.
-  const captionScope = useSoftReveal({ deps: [revealKey], delay: 0.85 });
+export default function FocusPreview({ sStyle, primaryFont, secondaryFont, pControls, sControls, text, revealKey }) {
+  const wordRef = useRef(null);
+  const subRef = useRef(null);
+  const captionScope = useSoftReveal({ deps: [revealKey], delay: 0.5 });
 
-  // words,chars keeps character boundaries inside words, so a long family
-  // name or phrase can't break mid-word the way a bare 'chars' split would
-  // (see PosterPreview — same fix, same reason).
-  const typeScope = useTypeReveal({
-    type: 'words,chars',
-    animate: 'chars',
-    mask: 'chars',
-    stagger: 0.026,
-    duration: 0.95,
-    yPercent: 115,
-    deps: [revealKey],
+  // What's actually painted right now — lags the incoming props until a
+  // blur-out has something real to fade away from before swapping in.
+  const [shown, setShown] = useState({
+    text, primaryFont, secondaryFont,
+    pWeight: pControls.weight, sWeight: sControls.weight,
   });
+  const firstRun = useRef(true);
+  const prevRevealKey = useRef(revealKey);
+
+  useGSAP(
+    () => {
+      const els = [wordRef.current, subRef.current].filter(Boolean);
+      if (!els.length) return;
+
+      const sync = () =>
+        setShown({
+          text, primaryFont, secondaryFont,
+          pWeight: pControls.weight, sWeight: sControls.weight,
+        });
+
+      // First paint: blur straight in, nothing to blur out from.
+      if (firstRun.current) {
+        firstRun.current = false;
+        prevRevealKey.current = revealKey;
+        sync();
+        if (prefersReducedMotion()) { gsap.set(els, { opacity: 1, filter: 'blur(0px)' }); return; }
+        gsap.fromTo(
+          els,
+          { opacity: 0, filter: 'blur(20px)' },
+          { opacity: 1, filter: 'blur(0px)', duration: DUR.slow, ease: EASE.out, stagger: 0.08 }
+        );
+        return;
+      }
+
+      // Only a real pairing change (Generate Pair) gets the blur transition.
+      // Typing, a manual font pick, or a weight tweak should land instantly —
+      // re-blurring on every keystroke would fight the person mid-type.
+      const isRegenerate = revealKey !== prevRevealKey.current;
+      prevRevealKey.current = revealKey;
+
+      if (!isRegenerate || prefersReducedMotion()) {
+        sync();
+        if (prefersReducedMotion()) gsap.set(els, { opacity: 1, filter: 'blur(0px)' });
+        return;
+      }
+
+      gsap.to(els, {
+        opacity: 0,
+        filter: 'blur(20px)',
+        duration: DUR.fast,
+        ease: EASE.in,
+        overwrite: 'auto',
+        onComplete: () => {
+          sync();
+          gsap.fromTo(
+            els,
+            { opacity: 0, filter: 'blur(20px)' },
+            { opacity: 1, filter: 'blur(0px)', duration: DUR.base, ease: EASE.out, stagger: 0.06, overwrite: 'auto' }
+          );
+        },
+      });
+    },
+    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey] }
+  );
 
   return (
     <div ref={captionScope} className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
       <div
-        // SplitText owns this node's children once it splits; key it on the
-        // text so an edit remounts cleanly instead of fighting React's
-        // reconciliation over spans it doesn't know about.
-        key={text}
-        ref={typeScope}
+        ref={wordRef}
         className="max-w-[1100px] leading-[0.98] tracking-tight text-foreground [text-wrap:balance] hyphens-none"
-        style={{ fontFamily: stack(primaryFont), fontWeight: pControls.weight, fontSize: sizeFor(text.length) }}
+        style={{ fontFamily: stack(shown.primaryFont), fontWeight: shown.pWeight, fontSize: sizeFor(shown.text.length) }}
       >
-        {text}
+        {shown.text}
+      </div>
+
+      <div
+        ref={subRef}
+        className="mt-5 sm:mt-7 max-w-[560px] text-[15px] sm:text-[17px] leading-relaxed text-muted-foreground [text-wrap:balance]"
+        style={{ fontFamily: stack(shown.secondaryFont), fontWeight: shown.sWeight, letterSpacing: `${sControls.ls}em` }}
+      >
+        {SAMPLE.heroSub}
       </div>
 
       <div
         data-reveal
-        className="mt-6 sm:mt-8 text-[11px] sm:text-[12px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+        className="mt-6 sm:mt-8 text-[11px] sm:text-[12px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70"
         style={{ fontFamily: sStyle.fontFamily }}
       >
         {primaryFont} <span className="opacity-50">+</span> {secondaryFont}

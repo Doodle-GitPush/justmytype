@@ -15,10 +15,6 @@ import { gsap, useGSAP, SplitText, EASE, DUR, prefersReducedMotion } from '@/lib
 export function useTypeReveal({
   type = 'lines',
   animate = 'lines',
-  // Which split-type gets the overflow-hidden mask. Defaults to masking
-  // lines only (the old behavior); pass explicitly to mask a char/word
-  // split too, e.g. Poster's and Focus's per-character reveal.
-  mask,
   stagger = 0.07,
   duration = DUR.type,
   ease = EASE.type,
@@ -43,7 +39,7 @@ export function useTypeReveal({
 
       const split = SplitText.create(el, {
         type,
-        mask: mask !== undefined ? mask : (animate === 'lines' ? 'lines' : undefined),
+        mask: animate === 'lines' ? 'lines' : undefined,
         autoSplit: true,
         onSplit: (self) =>
           gsap.from(self[animate], { yPercent, opacity: 0, duration, ease, stagger, delay }),
