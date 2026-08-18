@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, AlignLeft } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import { SlidersHorizontal, X, Filter, XCircle, AlignLeft, Lock, Unlock, Info } from 'lucide-react';
 import FontSection from './FontSection';
 import Presence from './motion/Presence';
+import { stack } from '../lib/typeStyles';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Slider } from "@/components/ui/slider";
 import { FONT_METADATA } from '../data/fonts';
@@ -30,6 +31,70 @@ function Pill({ active, onClick, children, className }) {
         >
             {children}
         </button>
+    );
+}
+
+/**
+ * Compact primary/secondary chip — name, lock toggle, info button. Used to
+ * live as a full-width card at the top of the old left sidebar; moved here
+ * so the pairing stays visible right where you're typing instead of off in
+ * a rail that didn't exist on mobile at all.
+ */
+function FontPill({ font, isLocked, onToggleLock, onInfo }) {
+    const nameRef = useRef(null);
+    const prevFont = useRef(font);
+
+    useLayoutEffect(() => {
+        if (font === prevFont.current) return;
+        prevFont.current = font;
+        if (!nameRef.current || prefersReducedMotion()) return;
+        gsap.fromTo(
+            nameRef.current,
+            { opacity: 0, y: 6 },
+            { opacity: 1, y: 0, duration: DUR.base, ease: EASE.out, overwrite: 'auto' }
+        );
+    }, [font]);
+
+    return (
+        <div
+            className={cn(
+                "flex items-center h-10 rounded-full border shadow-sm transition-all duration-200 overflow-hidden shrink-0",
+                isLocked
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : "bg-background/90 backdrop-blur border-border text-foreground hover:border-foreground/30"
+            )}
+        >
+            <button
+                onClick={onToggleLock}
+                aria-pressed={isLocked}
+                aria-label={`Font: ${font}. ${isLocked ? 'Locked' : 'Unlocked'}. Click to toggle.`}
+                title={isLocked ? 'Locked — won\'t change on Generate Pair' : 'Click to lock'}
+                className="flex items-center gap-2 pl-3.5 pr-2.5 h-full min-w-0"
+            >
+                <span className={cn("shrink-0", isLocked ? "text-primary-foreground" : "text-muted-foreground/60")}>
+                    {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                </span>
+                <span
+                    ref={nameRef}
+                    className="text-[12.5px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[110px] sm:max-w-[160px] tracking-tight"
+                    style={{ fontFamily: stack(font) }}
+                >
+                    {font}
+                </span>
+            </button>
+            <button
+                onClick={(e) => { e.stopPropagation(); onInfo(); }}
+                aria-label={`About ${font}`}
+                className={cn(
+                    "shrink-0 w-8 h-full flex items-center justify-center border-l transition-colors",
+                    isLocked
+                        ? "border-primary-foreground/20 text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                        : "border-border/60 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50"
+                )}
+            >
+                <Info size={12} />
+            </button>
+        </div>
     );
 }
 
@@ -64,11 +129,13 @@ export default function TypeDock({
     secondaryFont, setSecondaryFont,
     pControls, setPControls,
     sControls, setSControls,
-    primaryLocked, secondaryLocked,
+    primaryLocked, setPrimaryLocked,
+    secondaryLocked, setSecondaryLocked,
     fontList,
     bodyLineHeight, setBodyLineHeight,
     onFilteredListChange,
     isTuneOpen, setIsTuneOpen,
+    onShowFontInfo,
 }) {
     const dockRef = useRef(null);
     const textareaRef = useRef(null);
@@ -276,6 +343,23 @@ export default function TypeDock({
                     ))}
                 </Accordion>
             </Presence>
+
+            {/* The pairing itself — centered above the bar, not tucked in a
+                rail that only existed on desktop. */}
+            <div data-bar className="pointer-events-auto flex items-center gap-2">
+                <FontPill
+                    font={primaryFont}
+                    isLocked={primaryLocked}
+                    onToggleLock={() => setPrimaryLocked(!primaryLocked)}
+                    onInfo={() => onShowFontInfo(primaryFont)}
+                />
+                <FontPill
+                    font={secondaryFont}
+                    isLocked={secondaryLocked}
+                    onToggleLock={() => setSecondaryLocked(!secondaryLocked)}
+                    onInfo={() => onShowFontInfo(secondaryFont)}
+                />
+            </div>
 
             <div
                 data-bar

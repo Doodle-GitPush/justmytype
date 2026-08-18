@@ -337,7 +337,7 @@ export default function App() {
         <button
           onClick={generateRandomPair}
           aria-label="Generate new font pair"
-          className="lg:hidden fixed bottom-[168px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_hsl(var(--primary)/0.35)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
+          className="lg:hidden fixed bottom-[228px] right-4 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_8px_30px_hsl(var(--primary)/0.35)] border border-primary/20 flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition-transform"
         >
           <RefreshCw size={24} />
         </button>
@@ -447,11 +447,13 @@ export default function App() {
           secondaryFont={secondaryFont} setSecondaryFont={setSecondaryFont}
           pControls={primaryControls} setPControls={setPrimaryControls}
           sControls={secondaryControls} setSControls={setSecondaryControls}
-          primaryLocked={primaryLocked} secondaryLocked={secondaryLocked}
+          primaryLocked={primaryLocked} setPrimaryLocked={setPrimaryLocked}
+          secondaryLocked={secondaryLocked} setSecondaryLocked={setSecondaryLocked}
           fontList={FONTS}
           bodyLineHeight={bodyLineHeight} setBodyLineHeight={setBodyLineHeight}
           onFilteredListChange={setFilteredFonts}
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
+          onShowFontInfo={setInfoFont}
         />
 
         <PreviewArea
@@ -465,30 +467,12 @@ export default function App() {
 
         <RightTabs
           activeTab={activeTab} setActiveTab={setActiveTab}
-          primaryFont={primaryFont} secondaryFont={secondaryFont}
-          primaryLocked={primaryLocked} setPrimaryLocked={setPrimaryLocked}
-          secondaryLocked={secondaryLocked} setSecondaryLocked={setSecondaryLocked}
           THEMES={THEMES} theme={theme} setTheme={setTheme}
           generateRandomPair={generateRandomPair}
-          onShowFontInfo={setInfoFont}
         />
 
-        {/* Font-pairing badge — only meaningful while Focus's big centered
-            word has no room of its own to name the fonts. Stacks above the
-            credit rather than needing its own guessed offset. */}
-        <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 z-40 flex flex-col items-end gap-2">
-          <Presence
-            show={activeTab === 'focus'}
-            from={{ opacity: 0, y: 8 }} to={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}
-            duration={DUR.fast}
-            className="hidden sm:flex text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm items-center gap-1"
-          >
-            {primaryFont} <span className="opacity-50">+</span> {secondaryFont}
-          </Presence>
-
-          <div className="text-[10px] sm:text-[11px] font-medium text-muted-foreground bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
-            Made with ❤️ by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary transition-colors underline decoration-border underline-offset-2">Priyansh Jolapara</a>
-          </div>
+        <div className="fixed bottom-3 right-4 lg:bottom-4 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground z-40 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50 shadow-sm transition-opacity opacity-70 hover:opacity-100 hidden sm:flex items-center gap-1">
+          Made with ❤️ by <a href="https://www.priyanshjolapara.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary transition-colors underline decoration-border underline-offset-2">Priyansh Jolapara</a>
         </div>
 
         <Analytics />

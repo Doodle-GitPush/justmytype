@@ -1,17 +1,12 @@
 import { useRef, useLayoutEffect } from 'react';
-import { Lock, Unlock, RefreshCw, Info, Keyboard } from 'lucide-react';
+import { RefreshCw, Keyboard } from 'lucide-react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { TABS } from '../data/constants';
-import { stack } from '../lib/typeStyles';
 
 export default function RightTabs({
     activeTab, setActiveTab,
-    primaryFont, secondaryFont,
-    primaryLocked, setPrimaryLocked,
-    secondaryLocked, setSecondaryLocked,
     THEMES, theme, setTheme,
     generateRandomPair,
-    onShowFontInfo,
 }) {
     const scope = useRef(null);
     const listRef = useRef(null);
@@ -76,19 +71,6 @@ export default function RightTabs({
             ref={scope}
             className="hidden lg:flex w-[268px] min-w-[268px] h-full flex-col justify-center items-stretch gap-4 py-5 pr-8 pl-3 bg-background shrink-0 z-10 relative"
         >
-            <div data-rail className="flex flex-col gap-2 w-full">
-                <FontBadge
-                    label="Primary" font={primaryFont}
-                    isLocked={primaryLocked} onToggleLock={() => setPrimaryLocked(!primaryLocked)}
-                    onInfo={() => onShowFontInfo(primaryFont)}
-                />
-                <FontBadge
-                    label="Secondary" font={secondaryFont}
-                    isLocked={secondaryLocked} onToggleLock={() => setSecondaryLocked(!secondaryLocked)}
-                    onInfo={() => onShowFontInfo(secondaryFont)}
-                />
-            </div>
-
             {/* Preview mode switcher */}
             <div
                 ref={listRef}
@@ -175,69 +157,3 @@ export default function RightTabs({
     );
 }
 
-function FontBadge({ label, font, isLocked, onToggleLock, onInfo }) {
-    const nameRef = useRef(null);
-    const prevFont = useRef(font);
-
-    // The name swaps with a small rise whenever the font changes.
-    useLayoutEffect(() => {
-        if (font === prevFont.current) return;
-        prevFont.current = font;
-        if (!nameRef.current || prefersReducedMotion()) return;
-        gsap.fromTo(
-            nameRef.current,
-            { opacity: 0, y: 8 },
-            { opacity: 1, y: 0, duration: DUR.base, ease: EASE.out, overwrite: 'auto' }
-        );
-    }, [font]);
-
-    return (
-        <div
-            className={`flex items-stretch border rounded-xl h-16 w-full shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                isLocked
-                    ? 'bg-primary border-primary text-primary-foreground'
-                    : 'bg-card border-border/80 text-foreground'
-            }`}
-        >
-            <button
-                className="flex flex-col justify-center px-4 gap-0.5 flex-1 min-w-0 text-left"
-                onClick={onToggleLock}
-                aria-pressed={isLocked}
-                aria-label={`${label} font: ${font}. ${isLocked ? 'Locked' : 'Unlocked'}. Click to toggle.`}
-            >
-                <span
-                    className={`text-[10px] font-bold uppercase tracking-wider ${
-                        isLocked ? 'text-primary-foreground/80' : 'text-muted-foreground'
-                    }`}
-                >
-                    {label} {isLocked && '· Locked'}
-                </span>
-
-                <div className="flex items-center justify-between mt-0.5 gap-2">
-                    <span
-                        ref={nameRef}
-                        className="text-[15px] font-medium whitespace-nowrap overflow-hidden text-ellipsis tracking-tight min-w-0"
-                        style={{ fontFamily: stack(font) }}
-                    >
-                        {font}
-                    </span>
-                    <span className={`shrink-0 ${isLocked ? 'text-primary-foreground' : 'text-muted-foreground/50'}`}>
-                        {isLocked ? <Lock size={15} /> : <Unlock size={15} />}
-                    </span>
-                </div>
-            </button>
-
-            <button
-                onClick={(e) => { e.stopPropagation(); onInfo(); }}
-                aria-label={`About ${font}`}
-                className={`shrink-0 w-10 flex items-center justify-center border-l transition-colors rounded-r-xl ${
-                    isLocked
-                        ? 'border-primary-foreground/20 text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10'
-                        : 'border-border/60 text-muted-foreground/50 hover:text-foreground hover:bg-muted/50'
-                }`}
-            >
-                <Info size={14} />
-            </button>
-        </div>
-    );
-}
