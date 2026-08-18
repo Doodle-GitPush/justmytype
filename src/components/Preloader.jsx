@@ -3,6 +3,9 @@ import { gsap, useGSAP, EASE, prefersReducedMotion } from '@/lib/gsap';
 
 const WORD = 'JustMyType';
 const CURSOR_COLOR = '#FF4400';
+// Extra pixels added past the measured text width so the cursor sits with a
+// little breathing room after the last glyph instead of touching it.
+const CURSOR_GAP = 5.5;
 
 /**
  * Boot screen: the wordmark reveals itself through a widening clip in a
@@ -36,7 +39,7 @@ export default function Preloader({ ready, onFinish }) {
       // a monospace face, but Wanted Sans is proportional, so it landed the
       // cursor short or past the real last glyph. Measuring the element's
       // own natural width before clipping it keeps the two in sync.
-      const fullWidth = el.scrollWidth;
+      const fullWidth = el.scrollWidth + CURSOR_GAP;
       gsap.set(el, { width: 0, borderRightColor: CURSOR_COLOR });
 
       gsap.to(el, {
