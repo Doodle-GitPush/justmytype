@@ -105,22 +105,11 @@ export default function ComparePreview({ text }) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-6 px-6 min-h-0">
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-          Your font — {paidFamily}
-        </span>
-        <div
-          className="text-[clamp(24px,4vw,42px)] leading-tight text-foreground [text-wrap:balance] max-w-[900px]"
-          style={{ fontFamily: `'${paidFamily}', sans-serif` }}
-        >
-          {sampleLine}
-        </div>
-      </div>
-
-      {/* Controls sit between the two panels, not below both — pinning them
-          below would put the one thing you actually interact with in the
-          same cramped strip the floating dock overlaps. */}
-      <div className="shrink-0 flex flex-col items-center gap-2 py-4 border-y border-border">
+      {/* Controls live in a top bar — with the two fonts side by side there's
+          no natural middle divider to put them in, and pinning them below
+          both columns would put the one thing you actually interact with
+          in the same strip the floating dock overlaps. */}
+      <div className="shrink-0 flex flex-col items-center gap-2 pb-4 border-b border-border">
         <div className="flex items-center gap-2 flex-wrap justify-center px-4">
           <button
             onClick={() => setCandidateIndex((i) => i - 1)}
@@ -163,15 +152,29 @@ export default function ComparePreview({ text }) {
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-6 px-6 min-h-0">
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-primary mb-4">
-          Free alternative — {candidate}
-        </span>
-        <div
-          className="text-[clamp(24px,4vw,42px)] leading-tight text-foreground [text-wrap:balance] max-w-[900px]"
-          style={{ fontFamily: stack(candidate) }}
-        >
-          {sampleLine}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+        <div className="flex-1 flex flex-col items-center justify-center text-center py-8 px-6 min-h-0 border-b lg:border-b-0 lg:border-r border-border">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+            Your font — {paidFamily}
+          </span>
+          <div
+            className="text-[clamp(22px,3vw,36px)] leading-tight text-foreground [text-wrap:balance] max-w-[440px]"
+            style={{ fontFamily: `'${paidFamily}', sans-serif` }}
+          >
+            {sampleLine}
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center text-center py-8 px-6 min-h-0">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-primary mb-4">
+            Free alternative — {candidate}
+          </span>
+          <div
+            className="text-[clamp(22px,3vw,36px)] leading-tight text-foreground [text-wrap:balance] max-w-[440px]"
+            style={{ fontFamily: stack(candidate) }}
+          >
+            {sampleLine}
+          </div>
         </div>
       </div>
     </div>
