@@ -15,7 +15,7 @@ const sizeFor = (len) => {
   return 'clamp(44px,10.5vw,168px)';
 };
 
-export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
 
@@ -33,11 +33,19 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
       const els = [wordRef.current, subRef.current].filter(Boolean);
       if (!els.length) return;
 
-      const sync = () =>
+      const sync = () => {
         setShown({
           text, primaryFont, secondaryFont,
           pWeight: pControls.weight, sWeight: sControls.weight,
         });
+        // The headline owns its own DOM text while it's being typed into
+        // directly — writing it back from state mid-edit would reset the
+        // cursor to the start on every keystroke. Only push external
+        // changes (dock edits, Generate Pair, initial mount) into it.
+        if (wordRef.current && document.activeElement !== wordRef.current) {
+          wordRef.current.textContent = text;
+        }
+      };
 
       // First paint: blur straight in, nothing to blur out from.
       if (firstRun.current) {
@@ -88,7 +96,23 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
     <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
       <div
         ref={wordRef}
-        className="max-w-[1100px] tracking-tight text-foreground [text-wrap:balance] hyphens-none"
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck={false}
+        role="textbox"
+        aria-label="Preview text"
+        title="Click to edit"
+        onInput={(e) => onTextChange?.(e.currentTarget.textContent)}
+        onKeyDown={(e) => {
+          // Plain line break, not a nested <div> — keeps textContent (and
+          // sizeFor's length check) reading the same plain string the dock
+          // textarea would produce for the same input.
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            document.execCommand('insertLineBreak');
+          }
+        }}
+        className="max-w-[1100px] tracking-tight text-foreground [text-wrap:balance] hyphens-none outline-none cursor-text rounded-lg transition-shadow focus:ring-2 focus:ring-primary/40"
         style={{
           fontFamily: stack(shown.primaryFont),
           fontWeight: shown.pWeight,
@@ -96,9 +120,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
           lineHeight: pControls.lh,
           letterSpacing: `${pControls.ls}em`,
         }}
-      >
-        {shown.text}
-      </div>
+      />
 
       <div
         ref={subRef}

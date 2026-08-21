@@ -21,6 +21,7 @@ export default function PreviewArea({
   secondaryFont,
   sControls,
   sampleText,
+  setSampleText,
   bodyLineHeight,
   revealKey,
 }) {
@@ -89,6 +90,7 @@ export default function PreviewArea({
             text={text}
             revealKey={revealKey}
             bodyLineHeight={bodyLineHeight}
+            onTextChange={setSampleText}
           />
         </div>
       </div>

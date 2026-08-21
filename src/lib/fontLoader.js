@@ -32,6 +32,13 @@ export function loadFont(family) {
   document.head.appendChild(link);
 }
 
+/** Marks a family as already loaded — for fonts added directly via the
+ *  FontFace API (user uploads), so loadFont never tries to fetch them
+ *  from Google afterwards. */
+export function registerLoadedFont(family) {
+  requested.add(family);
+}
+
 /** Resolves once the family has actually painted (or after `timeout` ms). */
 export function whenFontReady(family, timeout = 3000) {
   loadFont(family);

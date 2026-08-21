@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { FONTS } from '../data/fonts';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Check, ChevronsUpDown, Upload } from 'lucide-react';
+import { FONTS, loadCustomFont } from '../data/fonts';
 import { loadFont } from '../lib/fontLoader';
 import { stack } from '../lib/typeStyles';
 import { cn } from "@/lib/utils";
@@ -17,6 +17,10 @@ const INITIAL_VISIBLE = 60;
 export default function FontSection({ font, setFont, controls, setControls, lhValue, setLh, fontList = FONTS }) {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
+    const [uploadError, setUploadError] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef(null);
 
     useEffect(() => { loadFont(font); }, [font]);
 
@@ -27,6 +31,21 @@ export default function FontSection({ font, setFont, controls, setControls, lhVa
     }, [fontList, query]);
 
     const hiddenCount = !query.trim() ? Math.max(0, fontList.length - results.length) : 0;
+
+    const handleFile = async (file) => {
+        if (!file) return;
+        setUploadError(null);
+        setUploading(true);
+        try {
+            const family = await loadCustomFont(file);
+            setFont(family);
+            setOpen(false);
+        } catch (err) {
+            setUploadError(err.message || 'Could not load that font.');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     return (
         <div className="flex flex-col">
@@ -43,7 +62,17 @@ export default function FontSection({ font, setFont, controls, setControls, lhVa
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[245px] p-0" align="start">
+                <PopoverContent
+                    className="w-[245px] p-0"
+                    align="start"
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOver(false);
+                        handleFile(e.dataTransfer.files?.[0]);
+                    }}
+                >
                     {/* We filter ourselves — cmdk's scorer would walk all 1,900 per keystroke. */}
                     <Command shouldFilter={false}>
                         <CommandInput
@@ -73,6 +102,31 @@ export default function FontSection({ font, setFont, controls, setControls, lhVa
                                 </div>
                             )}
                         </CommandList>
+
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".ttf,.otf,.woff,.woff2"
+                            className="hidden"
+                            onChange={(e) => handleFile(e.target.files?.[0])}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className={cn(
+                                "flex items-center gap-2 w-full px-3 py-2.5 text-[12px] border-t border-border transition-colors",
+                                dragOver ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                        >
+                            <Upload className="h-3.5 w-3.5 shrink-0" />
+                            {uploading ? 'Loading font…' : dragOver ? 'Drop to load' : 'Upload your own font…'}
+                        </button>
+                        {uploadError && (
+                            <div className="px-3 py-2 text-[11px] text-destructive border-t border-border">
+                                {uploadError}
+                            </div>
+                        )}
                     </Command>
                 </PopoverContent>
             </Popover>

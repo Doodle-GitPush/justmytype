@@ -470,7 +470,7 @@ export default function App() {
           activeTab={activeTab}
           primaryFont={primaryFont} pControls={primaryControls}
           secondaryFont={secondaryFont} sControls={secondaryControls}
-          sampleText={sampleText}
+          sampleText={sampleText} setSampleText={setSampleText}
           bodyLineHeight={bodyLineHeight}
           revealKey={revealKey}
         />
