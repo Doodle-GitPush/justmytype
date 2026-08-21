@@ -67,7 +67,15 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                 className={cn(
                     "flex flex-col p-1.5 bg-background/90 backdrop-blur-xl border border-border shadow-lg",
                     "transition-[border-radius,row-gap,box-shadow] duration-300 ease-out hover:shadow-xl",
-                    expanded ? "gap-1 rounded-[28px]" : "gap-0 rounded-full"
+                    /* Collapsed height is a fixed 50px (one h-9 row + p-1.5 +
+                       border), so its pill radius is spelled out as 25px
+                       rather than rounded-full's 9999px. Both endpoints being
+                       concrete values means the radius interpolates cleanly;
+                       rounded-full has to get clamped down to half the box's
+                       height every frame, and since that box height is
+                       *also* animating, the clamp point drifts and the
+                       radius transition visibly kinks where the two cross. */
+                    expanded ? "gap-1 rounded-[28px]" : "gap-0 rounded-[25px]"
                 )}
             >
                 {TABS.map((tab) => {
