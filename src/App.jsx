@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, RefreshCw, Download, Printer, ChevronDown, Keyboard, Info } from 'lucide-react';
+import { Moon, Sun, Check, Copy, Keyboard, Info } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -55,11 +55,6 @@ export default function App() {
   const [infoMenuOpen, setInfoMenuOpen] = useState(false);
   const infoRef = useRef(null);
 
-  const [exportOpen, setExportOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState(null);
-  const exportRef = useRef(null);
-
   const [fontToast, setFontToast] = useState(null);
   const handleFontAdded = (family) => {
     setFontToast(`${family} added and set as Primary`);
@@ -94,15 +89,6 @@ export default function App() {
     root.classList.toggle('dark', isDark);
     root.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
-
-  useEffect(() => {
-    if (!exportOpen) return;
-    const handler = (e) => {
-      if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [exportOpen]);
 
   useEffect(() => {
     if (!infoMenuOpen) return;
@@ -164,7 +150,6 @@ export default function App() {
         case 'Escape':
           setShowShortcuts(false);
           setInfoFont(null);
-          setExportOpen(false);
           setIsTuneOpen(false);
           setInfoMenuOpen(false);
           break;
@@ -213,47 +198,6 @@ export default function App() {
       setCopyError(true);
       setTimeout(() => setCopyError(false), 2600);
     }
-  };
-
-  // ── Export ──────────────────────────────────────────
-  const handleExportPng = async () => {
-    setExportOpen(false);
-    setIsExporting(true);
-    setExportError(null);
-    try {
-      const el = document.getElementById('jmt-preview-area');
-      if (!el) throw new Error('Preview element not found');
-
-      await document.fonts.ready;
-
-      // ~40 KB that only matters once the user actually exports.
-      const { toPng } = await import('html-to-image');
-
-      const dataUrl = await toPng(el, {
-        backgroundColor: isDark ? '#09090b' : '#ffffff',
-        pixelRatio: 2,
-        cacheBust: true,
-        // Capture the full composition, not just the visible scroll window.
-        width: el.scrollWidth,
-        height: el.scrollHeight,
-      });
-
-      const link = document.createElement('a');
-      link.download = `JustMyType_${primaryFont.replace(/\s/g, '-')}_x_${secondaryFont.replace(/\s/g, '-')}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Export failed:', err);
-      setExportError(err.message || 'Export failed');
-      setTimeout(() => setExportError(null), 4000);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handlePrint = () => {
-    setExportOpen(false);
-    window.print();
   };
 
   return (
@@ -393,52 +337,6 @@ export default function App() {
             <span>{copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}</span>
           </button>
 
-          <div className="relative" ref={exportRef}>
-            <button
-              onClick={() => setExportOpen(v => !v)}
-              disabled={isExporting}
-              aria-expanded={exportOpen}
-              className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2.5 rounded-full text-[13px] font-semibold text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95 disabled:opacity-60 disabled:hover:scale-100"
-            >
-              {isExporting
-                ? <RefreshCw size={16} className="animate-spin" />
-                : <Download size={16} />}
-              <span>{isExporting ? 'Exporting…' : 'Export'}</span>
-              <ChevronDown size={13} className={`transition-transform duration-200 ${exportOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            <Presence
-              show={exportOpen}
-              from={{ opacity: 0, y: 6, scale: 0.97 }}
-              to={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 4, scale: 0.97 }}
-              duration={DUR.fast}
-              className="absolute right-0 top-[calc(100%+8px)] w-48 bg-background border border-border rounded-xl shadow-xl overflow-hidden z-50 origin-top-right"
-            >
-              <button
-                onClick={handleExportPng}
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] text-foreground hover:bg-muted transition-colors text-left"
-              >
-                <Download size={14} className="text-muted-foreground shrink-0" />
-                <div>
-                  <div className="font-medium">Export as PNG</div>
-                  <div className="text-[11px] text-muted-foreground">2× high-res image</div>
-                </div>
-              </button>
-              <div className="h-px bg-border mx-3" />
-              <button
-                onClick={handlePrint}
-                className="w-full flex items-center gap-3 px-4 py-3 text-[13px] text-foreground hover:bg-muted transition-colors text-left"
-              >
-                <Printer size={14} className="text-muted-foreground shrink-0" />
-                <div>
-                  <div className="font-medium">Print / Save PDF</div>
-                  <div className="text-[11px] text-muted-foreground">Clean print layout</div>
-                </div>
-              </button>
-            </Presence>
-          </div>
-
           <button
             onClick={() => setIsDark(v => !v)}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -448,17 +346,6 @@ export default function App() {
             {isDark ? <Moon size={16} /> : <Sun size={16} />}
           </button>
         </div>
-
-        {/* Export error toast — replaces the old alert() */}
-        <Presence
-          show={!!exportError}
-          from={{ opacity: 0, y: 16 }} to={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-          duration={DUR.fast}
-          role="status"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] bg-destructive text-destructive-foreground text-[13px] font-medium px-4 py-2.5 rounded-xl shadow-lg"
-        >
-          {exportError}
-        </Presence>
 
         {/* Custom font added — confirms the drop/upload worked and where
             to find it, since it doesn't auto-assign to either slot. */}
