@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, Keyboard, Info } from 'lucide-react';
+import { Moon, Sun, Check, Copy, Keyboard, Info, Sparkles } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -35,6 +35,7 @@ export default function App() {
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
   const [activeTab, setActiveTab] = useState('focus');
+  const [webglEnabled, setWebglEnabled] = useState(false);
   const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -342,6 +343,24 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => {
+              setWebglEnabled(v => !v);
+              setActiveTab('focus');
+            }}
+            aria-pressed={webglEnabled}
+            aria-label={webglEnabled ? 'Turn off WebGL animation' : 'Turn on WebGL animation'}
+            title={webglEnabled ? 'Turn off WebGL animation' : 'Turn on WebGL animation'}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 border ${
+              webglEnabled
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background/80 backdrop-blur text-foreground border-border hover:bg-card'
+            }`}
+          >
+            <Sparkles size={16} />
+            <span>Animation</span>
+          </button>
+
+          <button
             onClick={() => setIsDark(v => !v)}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
             title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -386,6 +405,8 @@ export default function App() {
           sampleText={sampleText} setSampleText={setSampleText}
           bodyLineHeight={bodyLineHeight}
           revealKey={revealKey}
+          webglEnabled={webglEnabled}
+          isDark={isDark}
         />
 
         <RightTabs

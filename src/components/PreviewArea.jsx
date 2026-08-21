@@ -26,6 +26,8 @@ export default function PreviewArea({
   setSampleText,
   bodyLineHeight,
   revealKey,
+  webglEnabled,
+  isDark,
 }) {
   const stage = useRef(null);
   const reduced = prefersReducedMotion();
@@ -93,6 +95,8 @@ export default function PreviewArea({
             revealKey={revealKey}
             bodyLineHeight={bodyLineHeight}
             onTextChange={setSampleText}
+            webglEnabled={webglEnabled}
+            isDark={isDark}
           />
         </div>
       </div>

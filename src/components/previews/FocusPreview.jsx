@@ -1,7 +1,11 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, lazy, Suspense } from 'react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { SAMPLE } from '../../data/content';
 import { stack } from '../../lib/typeStyles';
+
+// three.js alone is ~500KB — only worth fetching once someone actually
+// flips the Animation toggle, not on every visit to the app.
+const WebglTextScene = lazy(() => import('../webgl/WebglTextScene'));
 
 // Primary's default Size control value — the scale below is relative to
 // this, so leaving the slider untouched reproduces the old fixed clamps.
@@ -22,7 +26,7 @@ const sizeFor = (len, size) => {
   return `clamp(${44 * scale}px,${10.5 * scale}vw,${168 * scale}px)`;
 };
 
-export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange, webglEnabled, isDark }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
 
@@ -96,8 +100,27 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         },
       });
     },
-    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey] }
+    // webglEnabled is here even though nothing in the effect body reads it
+    // directly — toggling it swaps wordRef/subRef's DOM nodes out and back
+    // in (WebGL replaces them entirely), and the fresh nodes come back
+    // empty until sync() runs again to give them their text.
+    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey, webglEnabled] }
   );
+
+  if (webglEnabled) {
+    return (
+      <div className="flex-1 w-full min-h-0">
+        <Suspense fallback={<div className="w-full h-full" />}>
+          <WebglTextScene
+            text={text}
+            fontFamily={stack(primaryFont)}
+            fontWeight={pControls.weight}
+            isDark={isDark}
+          />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
