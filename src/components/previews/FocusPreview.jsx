@@ -3,16 +3,23 @@ import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { SAMPLE } from '../../data/content';
 import { stack } from '../../lib/typeStyles';
 
+// Primary's default Size control value — the scale below is relative to
+// this, so leaving the slider untouched reproduces the old fixed clamps.
+const DEFAULT_SIZE = 24;
+
 /**
- * Big centered display type is the whole point of this view, so its size
- * has to answer to the text length, not the size slider — a pasted
- * paragraph and a single word can't share one clamp.
+ * Big centered display type still has to answer to text length first — a
+ * pasted paragraph and a single word can't share one clamp — but the Size
+ * control needs a real, visible effect too. It scales all three numbers
+ * in the clamp proportionally, so dragging it up or down moves the whole
+ * length-aware curve instead of being silently ignored.
  */
-const sizeFor = (len) => {
-  if (len > 70) return 'clamp(20px,4vw,44px)';
-  if (len > 40) return 'clamp(26px,5.5vw,64px)';
-  if (len > 20) return 'clamp(32px,7vw,96px)';
-  return 'clamp(44px,10.5vw,168px)';
+const sizeFor = (len, size) => {
+  const scale = size / DEFAULT_SIZE;
+  if (len > 70) return `clamp(${20 * scale}px,${4 * scale}vw,${44 * scale}px)`;
+  if (len > 40) return `clamp(${26 * scale}px,${5.5 * scale}vw,${64 * scale}px)`;
+  if (len > 20) return `clamp(${32 * scale}px,${7 * scale}vw,${96 * scale}px)`;
+  return `clamp(${44 * scale}px,${10.5 * scale}vw,${168 * scale}px)`;
 };
 
 export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange }) {
@@ -116,7 +123,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         style={{
           fontFamily: stack(shown.primaryFont),
           fontWeight: shown.pWeight,
-          fontSize: sizeFor(shown.text.length),
+          fontSize: sizeFor(shown.text.length, pControls.size),
           lineHeight: pControls.lh,
           letterSpacing: `${pControls.ls}em`,
         }}
