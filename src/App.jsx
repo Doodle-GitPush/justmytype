@@ -439,11 +439,14 @@ export default function App() {
             </Presence>
           </div>
 
-          <div className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-3 py-2.5 rounded-full shadow-sm">
-            <Sun size={16} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
-            <Switch checked={isDark} onCheckedChange={setIsDark} aria-label="Dark mode" />
-            <Moon size={16} className={isDark ? 'text-foreground' : 'text-muted-foreground'} />
-          </div>
+          <button
+            onClick={() => setIsDark(v => !v)}
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            className="flex items-center justify-center w-10 h-10 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95"
+          >
+            {isDark ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
         </div>
 
         {/* Export error toast — replaces the old alert() */}
