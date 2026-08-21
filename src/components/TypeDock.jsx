@@ -229,10 +229,16 @@ export default function TypeDock({
         el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
     }, [sampleText]);
 
-    // Click outside the dock closes the Tune drawer.
+    // Click outside the dock closes the Tune drawer. Radix Popover renders
+    // its content in a portal on document.body, not inside dockRef's DOM
+    // subtree — so picking a font from the search results (a portaled
+    // popover) looked like an outside click and slammed the whole drawer
+    // shut instead of just that popover. Anything landing inside a
+    // popper-portaled node is "inside" for this purpose too.
     useEffect(() => {
         if (!isTuneOpen) return;
         const handler = (e) => {
+            if (e.target.closest('[data-radix-popper-content-wrapper]')) return;
             if (dockRef.current && !dockRef.current.contains(e.target)) setIsTuneOpen(false);
         };
         document.addEventListener('mousedown', handler);
