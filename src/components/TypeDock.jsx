@@ -261,10 +261,11 @@ export default function TypeDock({
         { scope: dockRef }
     );
 
-    // Tune's content rides its own quick blur-and-settle on top of the
-    // grid-rows height morph — condensing in like glass instead of just
-    // fading, and quick enough that it reads as one snap rather than a
-    // slow reveal. Closing is the same shape in reverse, faster still.
+    // Tune's content rides its own blur-and-settle on top of the grid-rows
+    // height morph — condensing in like glass instead of just fading. Slow
+    // enough now to actually watch it happen rather than just registering
+    // a flicker; closing is the same shape in reverse, a bit quicker since
+    // dismissing doesn't need the same lingering read.
     const tuneFirstRun = useRef(true);
     useGSAP(
         () => {
@@ -287,13 +288,13 @@ export default function TypeDock({
             if (isTuneOpen) {
                 gsap.fromTo(
                     el,
-                    { opacity: 0, filter: 'blur(14px)', scale: 0.96, y: -6 },
-                    { opacity: 1, filter: 'blur(0px)', scale: 1, y: 0, duration: DUR.fast, ease: EASE.type, overwrite: 'auto' }
+                    { opacity: 0, filter: 'blur(18px)', scale: 0.94, y: -10 },
+                    { opacity: 1, filter: 'blur(0px)', scale: 1, y: 0, duration: 0.5, ease: EASE.type, overwrite: 'auto' }
                 );
             } else {
                 gsap.to(el, {
-                    opacity: 0, filter: 'blur(10px)', scale: 0.97, y: -4,
-                    duration: 0.14, ease: EASE.in, overwrite: 'auto',
+                    opacity: 0, filter: 'blur(12px)', scale: 0.96, y: -6,
+                    duration: 0.32, ease: EASE.in, overwrite: 'auto',
                 });
             }
         },
@@ -335,14 +336,14 @@ export default function TypeDock({
             >
                 {/* Morph region. grid-rows 0fr -> 1fr animates to the content's
                     natural height without hard-coding one, and the whole dock
-                    is bottom-anchored, so this opens upward on its own. Quick
-                    expo-out instead of ease-out — snaps into place rather
-                    than easing in, which reads faster even at a similar
-                    duration and matches the glass-condense feel of the
-                    blur/scale tween riding on the content underneath. */}
+                    is bottom-anchored, so this opens upward on its own.
+                    Expo-out instead of ease-out — decelerates into place
+                    rather than easing in throughout — timed to match the
+                    blur/scale tween riding on the content underneath, long
+                    enough to actually see happen. */}
                 <div
                     className={cn(
-                        "grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+                        "grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
                         isTuneOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                     )}
                 >
