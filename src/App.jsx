@@ -107,12 +107,6 @@ export default function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [infoMenuOpen]);
 
-  useEffect(() => {
-    const handler = () => setShowShortcuts(true);
-    window.addEventListener('jmt:showShortcuts', handler);
-    return () => window.removeEventListener('jmt:showShortcuts', handler);
-  }, []);
-
   const generateRandomPair = useCallback(() => {
     if (primaryLocked && secondaryLocked) return;
 

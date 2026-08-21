@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { Keyboard } from 'lucide-react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { TABS } from '../data/constants';
 import { cn } from "@/lib/utils";
@@ -50,10 +49,7 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                12px gutter puts this right up against it. Anchoring the RIGHT
                edge also means expanding grows leftward, away from the bar,
                instead of over it. */
-            /* col-reverse puts the mode switcher at the bottom of the stack so
-               it lines up with the bar; Shortcuts rides above it and gets
-               pushed further up as the switcher expands. */
-            className="hidden lg:flex fixed right-[calc(50%+332px)] bottom-6 z-40 flex-col-reverse items-end gap-2"
+            className="hidden lg:flex fixed right-[calc(50%+332px)] bottom-6 z-40 items-end"
             aria-label="Preview mode"
         >
             <div
@@ -126,27 +122,6 @@ export default function RightTabs({ activeTab, setActiveTab }) {
                     );
                 })}
             </div>
-
-            <button
-                onClick={() => window.dispatchEvent(new CustomEvent('jmt:showShortcuts'))}
-                aria-label="Keyboard shortcuts"
-                title="Keyboard shortcuts"
-                className={cn(
-                    "flex items-center gap-2 rounded-full bg-background/90 backdrop-blur-xl border border-border shadow-sm",
-                    "text-muted-foreground hover:text-foreground transition-all duration-300 overflow-hidden whitespace-nowrap",
-                    expanded ? "h-8 px-3 opacity-100" : "h-8 w-8 px-0 justify-center opacity-70"
-                )}
-            >
-                <Keyboard size={13} className="shrink-0" />
-                <span
-                    className={cn(
-                        "text-[11px] min-w-0 transition-[max-width,opacity] duration-300",
-                        expanded ? "max-w-[120px] opacity-100" : "max-w-0 opacity-0"
-                    )}
-                >
-                    Shortcuts
-                </span>
-            </button>
         </nav>
     );
 }
