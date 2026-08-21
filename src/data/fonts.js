@@ -14,7 +14,16 @@ export let FONTS = [
     'Bebas Neue', 'Anton', 'Passion One',
 ].sort((a, b) => a.localeCompare(b));
 
-export let FONT_METADATA = [];
+// Bundled locally via @font-face rather than fetched, so they never appear
+// in font-metadata.json's Google Fonts data — which meant the Category/
+// Weight/Italic filters had no data to check them against and fell back to
+// always showing them, regardless of which filter was active. "Wanted Sans"
+// slipping through a Serif filter is exactly the bug that fallback caused.
+const LOCAL_FONT_METADATA = [
+    { family: 'Wanted Sans', category: 'Sans Serif', weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], hasItalic: false },
+];
+
+export let FONT_METADATA = [...LOCAL_FONT_METADATA];
 
 // Fetches the full list of 1500+ Google Fonts asynchronously
 export const fetchAllFonts = async () => {
@@ -22,7 +31,7 @@ export const fetchAllFonts = async () => {
         const response = await fetch('/font-metadata.json');
         const data = await response.json();
         if (data && Array.isArray(data)) {
-            FONT_METADATA = data;
+            FONT_METADATA = [...LOCAL_FONT_METADATA, ...data];
             const fetchedNames = data.map(f => f.family);
             const allFonts = new Set([...FONTS, ...fetchedNames]);
             FONTS = Array.from(allFonts).sort((a, b) => a.localeCompare(b));
