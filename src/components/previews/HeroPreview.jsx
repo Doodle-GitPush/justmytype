@@ -16,9 +16,23 @@ const FEATURES = [
  * doubling up on the nav bar underneath it, no colored icon blobs or
  * gradient bands. The type pair is the only thing meant to stand out.
  */
+// The site is no longer height-boxed with its own internal scrollbar — it
+// fills the preview pane and scrolls with it, which means the *actual*
+// scrolling ancestor for ScrollTrigger differs by breakpoint (the app root
+// on mobile, a specific inner div on desktop). Walk up and find whichever
+// one is actually overflowing right now instead of hardcoding either.
+const findScrollParent = (el) => {
+  let node = el?.parentElement;
+  while (node) {
+    const style = getComputedStyle(node);
+    if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) return node;
+    node = node.parentElement;
+  }
+  return window;
+};
+
 export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
   const scope = useRef(null);
-  const scroller = useRef(null);
   const headline = text || SAMPLE.heroTitle;
 
   useGSAP(
@@ -47,13 +61,14 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
           }),
       });
 
+      const activeScroller = findScrollParent(scope.current);
       q('[data-scroll-in]').forEach((el) => {
         gsap.from(el, {
           opacity: 0,
           y: 24,
           duration: DUR.slow,
           ease: EASE.out,
-          scrollTrigger: { trigger: el, scroller: scroller.current, start: 'top bottom-=40', once: true },
+          scrollTrigger: { trigger: el, scroller: activeScroller, start: 'top bottom-=40', once: true },
         });
       });
 
@@ -69,16 +84,13 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
   );
 
   return (
-    <div ref={scope} className="w-full max-w-[1000px] mx-auto flex flex-col items-center px-0 lg:px-8 [perspective:2000px]">
+    <div ref={scope} className="w-full flex-1 flex flex-col [perspective:2000px]">
       <div
         data-frame
         data-hero
-        className="w-full bg-background border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col"
+        className="w-full flex-1 bg-background flex flex-col"
       >
-        <div
-          ref={scroller}
-          className="relative w-full h-[640px] overflow-y-auto overflow-x-hidden bg-background flex flex-col scroll-smooth scrollbar-hide"
-        >
+        <div className="relative w-full flex-1 min-h-[500px] bg-background flex flex-col">
           {/* Nav — doubles as the frame's top bar, so there's one piece of
               chrome instead of a browser bar stacked on top of a site nav. */}
           <nav className="flex items-center justify-between w-full py-4 px-6 md:px-10 bg-background/90 backdrop-blur-md border-b border-border sticky top-0 z-30">
