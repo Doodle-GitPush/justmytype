@@ -156,6 +156,7 @@ export default function TypeDock({
     const textareaRef = useRef(null);
     const spinRef = useRef(null);
     const fontFileRef = useRef(null);
+    const tuneContentRef = useRef(null);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedWeights, setSelectedWeights] = useState([]);
     const [requireItalic, setRequireItalic] = useState(false);
@@ -260,6 +261,45 @@ export default function TypeDock({
         { scope: dockRef }
     );
 
+    // Tune's content rides its own quick blur-and-settle on top of the
+    // grid-rows height morph — condensing in like glass instead of just
+    // fading, and quick enough that it reads as one snap rather than a
+    // slow reveal. Closing is the same shape in reverse, faster still.
+    const tuneFirstRun = useRef(true);
+    useGSAP(
+        () => {
+            const el = tuneContentRef.current;
+            if (!el) return;
+
+            // Mount always starts closed — nothing to animate away from
+            // yet, so just land on the closed values instead of tweening
+            // into a zero-height region nobody can see.
+            if (tuneFirstRun.current) {
+                tuneFirstRun.current = false;
+                gsap.set(el, isTuneOpen
+                    ? { opacity: 1, filter: 'blur(0px)', scale: 1, y: 0 }
+                    : { opacity: 0, filter: 'blur(10px)', scale: 0.97, y: -4 });
+                return;
+            }
+
+            if (prefersReducedMotion()) return;
+
+            if (isTuneOpen) {
+                gsap.fromTo(
+                    el,
+                    { opacity: 0, filter: 'blur(14px)', scale: 0.96, y: -6 },
+                    { opacity: 1, filter: 'blur(0px)', scale: 1, y: 0, duration: DUR.fast, ease: EASE.type, overwrite: 'auto' }
+                );
+            } else {
+                gsap.to(el, {
+                    opacity: 0, filter: 'blur(10px)', scale: 0.97, y: -4,
+                    duration: 0.14, ease: EASE.in, overwrite: 'auto',
+                });
+            }
+        },
+        { dependencies: [isTuneOpen] }
+    );
+
     return (
         <div
             ref={dockRef}
@@ -295,10 +335,14 @@ export default function TypeDock({
             >
                 {/* Morph region. grid-rows 0fr -> 1fr animates to the content's
                     natural height without hard-coding one, and the whole dock
-                    is bottom-anchored, so this opens upward on its own. */}
+                    is bottom-anchored, so this opens upward on its own. Quick
+                    expo-out instead of ease-out — snaps into place rather
+                    than easing in, which reads faster even at a similar
+                    duration and matches the glass-condense feel of the
+                    blur/scale tween riding on the content underneath. */}
                 <div
                     className={cn(
-                        "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
+                        "grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
                         isTuneOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                     )}
                 >
@@ -307,6 +351,7 @@ export default function TypeDock({
                         away from screen readers. */}
                     <div className="overflow-hidden">
                         <div
+                            ref={tuneContentRef}
                             className="max-h-[min(55vh,460px)] overflow-y-auto scrollbar-hide px-4 pt-4 sm:px-5 sm:pt-5"
                             {...(isTuneOpen ? {} : { inert: true, 'aria-hidden': 'true' })}
                             /* A font file can be dropped anywhere in this panel,
