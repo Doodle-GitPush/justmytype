@@ -60,6 +60,14 @@ export default function App() {
   const [exportError, setExportError] = useState(null);
   const exportRef = useRef(null);
 
+  // Setting this also forces the re-render that lets FONTS (a plain module
+  // array, mutated in place by loadCustomFont) reach fontList={FONTS} below.
+  const [fontToast, setFontToast] = useState(null);
+  const handleFontAdded = (family) => {
+    setFontToast(`${family} added — pick it from Primary or Secondary`);
+    setTimeout(() => setFontToast(null), 4000);
+  };
+
   // Bumped on every generate so the preview replays its entrance animation.
   const [revealKey, setRevealKey] = useState(0);
 
@@ -451,6 +459,18 @@ export default function App() {
           {exportError}
         </Presence>
 
+        {/* Custom font added — confirms the drop/upload worked and where
+            to find it, since it doesn't auto-assign to either slot. */}
+        <Presence
+          show={!!fontToast}
+          from={{ opacity: 0, y: -16 }} to={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+          duration={DUR.fast}
+          role="status"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[80] bg-primary text-primary-foreground text-[13px] font-medium px-4 py-2.5 rounded-xl shadow-lg"
+        >
+          {fontToast}
+        </Presence>
+
         <TypeDock
           sampleText={sampleText} setSampleText={setSampleText}
           primaryFont={primaryFont} setPrimaryFont={setPrimaryFont}
@@ -464,6 +484,7 @@ export default function App() {
           onFilteredListChange={setFilteredFonts}
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
           generateRandomPair={generateRandomPair}
+          onFontAdded={handleFontAdded}
         />
 
         <PreviewArea

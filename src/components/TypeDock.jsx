@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload } from 'lucide-react';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
 import { stack } from '../lib/typeStyles';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { FONT_METADATA } from '../data/fonts';
+import { FONT_METADATA, loadCustomFont } from '../data/fonts';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { cn } from "@/lib/utils";
 
@@ -150,13 +150,35 @@ export default function TypeDock({
     onFilteredListChange,
     isTuneOpen, setIsTuneOpen,
     generateRandomPair,
+    onFontAdded,
 }) {
     const dockRef = useRef(null);
     const textareaRef = useRef(null);
     const spinRef = useRef(null);
+    const fontFileRef = useRef(null);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedWeights, setSelectedWeights] = useState([]);
     const [requireItalic, setRequireItalic] = useState(false);
+    const [fontDragOver, setFontDragOver] = useState(false);
+    const [fontUploading, setFontUploading] = useState(false);
+    const [fontUploadError, setFontUploadError] = useState(null);
+
+    // Not scoped to Primary or Secondary — this is the "from anywhere" entry
+    // point, so it just registers the family and lets the person pick a slot
+    // from the pickers below, same as any other font in the list.
+    const handleFontFile = async (file) => {
+        if (!file) return;
+        setFontUploadError(null);
+        setFontUploading(true);
+        try {
+            const family = await loadCustomFont(file);
+            onFontAdded?.(family);
+        } catch (err) {
+            setFontUploadError(err.message || 'Could not load that font.');
+        } finally {
+            setFontUploading(false);
+        }
+    };
 
     const hasFilters = selectedCategories.length > 0 || selectedWeights.length > 0 || requireItalic;
     const clearFilters = () => {
@@ -279,6 +301,16 @@ export default function TypeDock({
                         <div
                             className="max-h-[min(55vh,460px)] overflow-y-auto scrollbar-hide px-4 pt-4 sm:px-5 sm:pt-5"
                             {...(isTuneOpen ? {} : { inert: true, 'aria-hidden': 'true' })}
+                            /* A font file can be dropped anywhere in this panel,
+                               not just on the upload row — the row is the
+                               discoverable target, this is the forgiving one. */
+                            onDragOver={(e) => { e.preventDefault(); setFontDragOver(true); }}
+                            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setFontDragOver(false); }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                setFontDragOver(false);
+                                handleFontFile(e.dataTransfer.files?.[0]);
+                            }}
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-[13px] font-semibold text-foreground">Tune</span>
@@ -311,6 +343,35 @@ export default function TypeDock({
                         }
                     >
                         <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border">
+                            <div className="flex flex-col gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => fontFileRef.current?.click()}
+                                    disabled={fontUploading}
+                                    className={cn(
+                                        "flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border border-dashed text-[11px] font-medium transition-colors",
+                                        fontDragOver
+                                            ? "border-primary bg-primary/10 text-primary"
+                                            : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                                    )}
+                                >
+                                    <Upload size={13} className="shrink-0" />
+                                    {fontUploading ? 'Loading font…' : fontDragOver ? 'Drop to load' : 'Upload your own font — click or drop anywhere here'}
+                                </button>
+                                <input
+                                    ref={fontFileRef}
+                                    type="file"
+                                    accept=".ttf,.otf,.woff,.woff2"
+                                    className="hidden"
+                                    onChange={(e) => handleFontFile(e.target.files?.[0])}
+                                />
+                                {fontUploadError && (
+                                    <span className="text-[10px] text-destructive px-1">{fontUploadError}</span>
+                                )}
+                            </div>
+
+                            <div className="h-px bg-border/60 w-full" />
+
                             <div className="flex flex-col gap-3">
                                 <span className="text-[11px] font-medium text-foreground">Category</span>
                                 <div className="flex flex-wrap gap-2">
