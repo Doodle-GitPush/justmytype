@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Analytics } from "@vercel/analytics/react";
 
 const SHORTCUTS = [
-  { keys: ['Space'], label: 'Generate new pair' },
+  { keys: ['Space'], label: 'Generate new pair (next candidate in Compare)' },
   { keys: ['L'], label: 'Lock / unlock primary font' },
   { keys: ['K'], label: 'Lock / unlock secondary font' },
   { keys: ['D'], label: 'Toggle dark mode' },
@@ -24,6 +24,7 @@ const SHORTCUTS = [
   { keys: ['2'], label: 'Article preview' },
   { keys: ['3'], label: 'Hero preview' },
   { keys: ['4'], label: 'Specimen preview' },
+  { keys: ['5'], label: 'Compare preview' },
   { keys: ['?'], label: 'Show this shortcuts panel' },
   { keys: ['Esc'], label: 'Close any panel' },
 ];
@@ -139,6 +140,9 @@ export default function App() {
 
       switch (e.key) {
         case ' ':
+          // In Compare, Space cycles candidate fonts instead — that view
+          // owns its own Space listener while it's mounted.
+          if (activeTab === 'compare') break;
           // Only hijack Space when it isn't being used to scroll a panel.
           e.preventDefault();
           generateRandomPair();
@@ -158,7 +162,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [generateRandomPair]);
+  }, [generateRandomPair, activeTab]);
 
   // ── Copy CSS ────────────────────────────────────────
   const handleCopyCss = async () => {

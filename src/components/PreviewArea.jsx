@@ -6,12 +6,14 @@ import FocusPreview from './previews/FocusPreview';
 import ArticlePreview from './previews/ArticlePreview';
 import HeroPreview from './previews/HeroPreview';
 import SpecimenPreview from './previews/SpecimenPreview';
+import ComparePreview from './previews/ComparePreview';
 
 const VIEWS = {
   focus: FocusPreview,
   article: ArticlePreview,
   hero: HeroPreview,
   specimen: SpecimenPreview,
+  compare: ComparePreview,
 };
 
 export default function PreviewArea({
