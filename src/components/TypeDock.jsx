@@ -163,15 +163,17 @@ export default function TypeDock({
     const [fontUploading, setFontUploading] = useState(false);
     const [fontUploadError, setFontUploadError] = useState(null);
 
-    // Not scoped to Primary or Secondary — this is the "from anywhere" entry
-    // point, so it just registers the family and lets the person pick a slot
-    // from the pickers below, same as any other font in the list.
+    // This is the "from anywhere" entry point, not scoped to a slot the way
+    // a per-font search popover is — so it defaults the result to Primary,
+    // the one that's front and centre in every view, rather than just
+    // registering it and leaving the person to go find it in a list.
     const handleFontFile = async (file) => {
         if (!file) return;
         setFontUploadError(null);
         setFontUploading(true);
         try {
             const family = await loadCustomFont(file);
+            setPrimaryFont(family);
             onFontAdded?.(family);
         } catch (err) {
             setFontUploadError(err.message || 'Could not load that font.');

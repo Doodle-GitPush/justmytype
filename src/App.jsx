@@ -60,11 +60,9 @@ export default function App() {
   const [exportError, setExportError] = useState(null);
   const exportRef = useRef(null);
 
-  // Setting this also forces the re-render that lets FONTS (a plain module
-  // array, mutated in place by loadCustomFont) reach fontList={FONTS} below.
   const [fontToast, setFontToast] = useState(null);
   const handleFontAdded = (family) => {
-    setFontToast(`${family} added — pick it from Primary or Secondary`);
+    setFontToast(`${family} added and set as Primary`);
     setTimeout(() => setFontToast(null), 4000);
   };
 
