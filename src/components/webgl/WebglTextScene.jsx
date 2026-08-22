@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { gsap, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 
@@ -136,6 +136,7 @@ function rasterizeText(text, fontFamily, fontWeight) {
 export default function WebglTextScene({ text, fontFamily, fontWeight, isDark }) {
   const containerRef = useRef(null);
   const stateRef = useRef(null);
+  const [glFailed, setGlFailed] = useState(false);
 
   // One-time scene/renderer/particles setup.
   useEffect(() => {
@@ -146,6 +147,11 @@ export default function WebglTextScene({ text, fontFamily, fontWeight, isDark })
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     } catch {
+      // Browser WebGL disabled, GPU blocklisted, extension blocking it,
+      // etc. — say so instead of leaving the toggle looking like it did
+      // nothing at all. Deferred a tick: setting state synchronously inside
+      // an effect body triggers a cascading render React warns about.
+      queueMicrotask(() => setGlFailed(true));
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -311,6 +317,18 @@ export default function WebglTextScene({ text, fontFamily, fontWeight, isDark })
       // outer unmount cleanup above handles the final disposal.
     };
   }, [text, fontFamily, fontWeight, isDark]);
+
+  if (glFailed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-center px-6">
+        <p className="text-[14px] text-muted-foreground max-w-[360px]">
+          This browser can&apos;t create a WebGL context, so the animated
+          view isn&apos;t available here — try a different browser or
+          device.
+        </p>
+      </div>
+    );
+  }
 
   return <div ref={containerRef} className="w-full h-full" />;
 }

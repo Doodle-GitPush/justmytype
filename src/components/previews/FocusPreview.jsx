@@ -109,7 +109,17 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
 
   if (webglEnabled) {
     return (
-      <div className="flex-1 w-full min-h-0">
+      // h-[60vh] with no flex-1 on mobile is load-bearing: the preview
+      // area is height:auto all the way up, so even a flex-grown height
+      // (flex-1 stretching this div past 60vh) doesn't count as
+      // "definite" for percentage resolution — the WebGL canvas inside
+      // is styled h-full, which needs a real definite ancestor height to
+      // resolve against, or it collapses to the browser's 150px default
+      // canvas size. Dropping flex-1 keeps this div's height pinned to
+      // the literal 60vh value instead of being stretched through an
+      // indefinite flex chain. lg:flex-1 lg:h-full hands sizing back to
+      // the normal bounded flex chain on desktop.
+      <div className="w-full h-[60vh] lg:flex-1 lg:h-full">
         <Suspense fallback={<div className="w-full h-full" />}>
           <WebglTextScene
             text={text}

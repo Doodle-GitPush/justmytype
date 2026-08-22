@@ -261,7 +261,27 @@ export default function App() {
         </Presence>
 
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-end px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
+        <header className="lg:hidden flex items-center justify-end gap-2 px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
+          {/* Same toggle as the desktop toolbar — that one is hidden below
+              lg, so without this the whole feature was unreachable on
+              anything narrower than 1024px (a laptop with the browser not
+              maximized, or any phone/tablet). */}
+          <button
+            onClick={() => {
+              setWebglEnabled(v => !v);
+              setActiveTab('focus');
+            }}
+            aria-pressed={webglEnabled}
+            aria-label={webglEnabled ? 'Turn off WebGL animation' : 'Turn on WebGL animation'}
+            className={`flex items-center justify-center w-9 h-9 rounded-full border shadow-sm transition-colors shrink-0 ${
+              webglEnabled
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background/90 backdrop-blur text-foreground border-border'
+            }`}
+          >
+            <Sparkles size={15} />
+          </button>
+
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-full">
               <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
