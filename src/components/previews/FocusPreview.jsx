@@ -1,11 +1,18 @@
-import { useRef, useState, lazy, Suspense } from 'react';
-import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
+import { useRef, useState } from 'react';
+import { gsap, useGSAP, SplitText, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { SAMPLE } from '../../data/content';
 import { stack } from '../../lib/typeStyles';
 
-// three.js alone is ~500KB — only worth fetching once someone actually
-// flips the Animation toggle, not on every visit to the app.
-const WebglTextScene = lazy(() => import('../webgl/WebglTextScene'));
+// A single shared swirl trajectory every character flies in along (as a
+// relative x/y offset from its own resting position, ending at 0,0) —
+// staggering the same path per character reads as one coherent swirl
+// rather than each letter going its own separate way.
+const SWIRL_PATH = [
+  { x: 240, y: -70 },
+  { x: 60, y: 160 },
+  { x: -130, y: -50 },
+  { x: 0, y: 0 },
+];
 
 // Primary's default Size control value — the scale below is relative to
 // this, so leaving the slider untouched reproduces the old fixed clamps.
@@ -26,7 +33,7 @@ const sizeFor = (len, size) => {
   return `clamp(${44 * scale}px,${10.5 * scale}vw,${168 * scale}px)`;
 };
 
-export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange, webglEnabled, isDark }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange, textAnimEnabled }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
 
@@ -38,6 +45,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
   });
   const firstRun = useRef(true);
   const prevRevealKey = useRef(revealKey);
+  const prevAnimEnabled = useRef(textAnimEnabled);
 
   useGSAP(
     () => {
@@ -58,29 +66,88 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         }
       };
 
-      // First paint: blur straight in, nothing to blur out from.
+      // Splits the (already-synced) headline into characters and flies
+      // each one in along SWIRL_PATH. autoSplit re-splits on its own if
+      // the webfont finishes loading or the layout reflows mid-animation;
+      // reverting on completion hands the element back as plain text so
+      // it stays a normal, typeable contentEditable field afterward.
+      const playSwirl = () => {
+        const word = wordRef.current;
+        if (!word || !word.textContent.trim()) return;
+        // Typing into the field while it's mid-split (spans instead of
+        // plain text) landed characters in the wrong place entirely —
+        // browsers don't resolve cursor position through many inline
+        // spans the way they do through one text node. Locking editing
+        // for the ~1-2s the swirl takes avoids that rather than trying
+        // to make split text reliably editable.
+        word.contentEditable = 'false';
+        SplitText.create(word, {
+          type: 'chars',
+          autoSplit: true,
+          onSplit: (self) => {
+            gsap.set(self.chars, { transformOrigin: '50% 50%' });
+            return gsap.fromTo(
+              self.chars,
+              { opacity: 0, scale: 0.3 },
+              {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: EASE.type,
+                stagger: 0.028,
+                motionPath: { path: SWIRL_PATH, curviness: 1.25, autoRotate: true },
+                onComplete: () => {
+                  self.revert();
+                  word.contentEditable = 'true';
+                },
+              }
+            );
+          },
+        });
+      };
+
+      // First paint: blur straight in (or swirl in, if Animation is
+      // already on) — nothing to transition out from yet.
       if (firstRun.current) {
         firstRun.current = false;
         prevRevealKey.current = revealKey;
+        prevAnimEnabled.current = textAnimEnabled;
         sync();
         if (prefersReducedMotion()) { gsap.set(els, { opacity: 1, filter: 'blur(0px)' }); return; }
-        gsap.fromTo(
-          els,
-          { opacity: 0, filter: 'blur(20px)' },
-          { opacity: 1, filter: 'blur(0px)', duration: DUR.slow, ease: EASE.out, stagger: 0.08 }
-        );
+        if (textAnimEnabled) {
+          gsap.set(wordRef.current, { opacity: 1, filter: 'blur(0px)' });
+          gsap.fromTo(subRef.current, { opacity: 0, filter: 'blur(20px)' }, { opacity: 1, filter: 'blur(0px)', duration: DUR.slow, ease: EASE.out });
+          playSwirl();
+        } else {
+          gsap.fromTo(
+            els,
+            { opacity: 0, filter: 'blur(20px)' },
+            { opacity: 1, filter: 'blur(0px)', duration: DUR.slow, ease: EASE.out, stagger: 0.08 }
+          );
+        }
         return;
       }
 
-      // Only a real pairing change (Generate Pair) gets the blur transition.
-      // Typing, a manual font pick, or a weight tweak should land instantly —
-      // re-blurring on every keystroke would fight the person mid-type.
+      // A real pairing change (Generate Pair) or just switching Animation
+      // on gets a transition. Typing, a manual font pick, or a weight
+      // tweak should land instantly — re-animating on every keystroke
+      // would fight the person mid-type.
       const isRegenerate = revealKey !== prevRevealKey.current;
+      const justEnabledAnim = textAnimEnabled && !prevAnimEnabled.current;
       prevRevealKey.current = revealKey;
+      prevAnimEnabled.current = textAnimEnabled;
 
-      if (!isRegenerate || prefersReducedMotion()) {
+      if ((!isRegenerate && !justEnabledAnim) || prefersReducedMotion()) {
         sync();
         if (prefersReducedMotion()) gsap.set(els, { opacity: 1, filter: 'blur(0px)' });
+        return;
+      }
+
+      if (textAnimEnabled) {
+        sync();
+        gsap.set(wordRef.current, { opacity: 1, filter: 'blur(0px)' });
+        gsap.fromTo(subRef.current, { opacity: 0, filter: 'blur(20px)' }, { opacity: 1, filter: 'blur(0px)', duration: DUR.base, ease: EASE.out, overwrite: 'auto' });
+        playSwirl();
         return;
       }
 
@@ -100,37 +167,8 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         },
       });
     },
-    // webglEnabled is here even though nothing in the effect body reads it
-    // directly — toggling it swaps wordRef/subRef's DOM nodes out and back
-    // in (WebGL replaces them entirely), and the fresh nodes come back
-    // empty until sync() runs again to give them their text.
-    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey, webglEnabled] }
+    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey, textAnimEnabled] }
   );
-
-  if (webglEnabled) {
-    return (
-      // h-[60vh] with no flex-1 on mobile is load-bearing: the preview
-      // area is height:auto all the way up, so even a flex-grown height
-      // (flex-1 stretching this div past 60vh) doesn't count as
-      // "definite" for percentage resolution — the WebGL canvas inside
-      // is styled h-full, which needs a real definite ancestor height to
-      // resolve against, or it collapses to the browser's 150px default
-      // canvas size. Dropping flex-1 keeps this div's height pinned to
-      // the literal 60vh value instead of being stretched through an
-      // indefinite flex chain. lg:flex-1 lg:h-full hands sizing back to
-      // the normal bounded flex chain on desktop.
-      <div className="w-full h-[60vh] lg:flex-1 lg:h-full">
-        <Suspense fallback={<div className="w-full h-full" />}>
-          <WebglTextScene
-            text={text}
-            fontFamily={stack(primaryFont)}
-            fontWeight={pControls.weight}
-            isDark={isDark}
-          />
-        </Suspense>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
