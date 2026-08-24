@@ -280,18 +280,6 @@ export default function App() {
 
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-end gap-2 px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
-          {/* Same entry point as the desktop toolbar — that one is hidden
-              below lg, so without this Animate mode was unreachable on
-              anything narrower than 1024px (a laptop with the browser not
-              maximized, or any phone/tablet). */}
-          <button
-            onClick={() => setAnimateMode(true)}
-            aria-label="Animate this type"
-            className="flex items-center justify-center w-9 h-9 rounded-full border border-border bg-background/90 backdrop-blur text-foreground shadow-sm transition-colors shrink-0"
-          >
-            <Sparkles size={15} />
-          </button>
-
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-full">
               <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
@@ -319,6 +307,19 @@ export default function App() {
                 </button>
               );
             })}
+
+            {/* Not a preview tab — its own entry point on the far right,
+                set off by a divider, since it replaces this whole bar
+                rather than swapping what's shown inside it. */}
+            <div className="w-px self-stretch bg-border shrink-0 mx-0.5" aria-hidden="true" />
+            <button
+              onClick={() => setAnimateMode(true)}
+              aria-label="Animate this type"
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-xl transition-colors text-primary hover:bg-primary/10"
+            >
+              <Sparkles size={18} />
+              <span className="text-[10px] font-medium">Animate</span>
+            </button>
           </div>
         </nav>
 
