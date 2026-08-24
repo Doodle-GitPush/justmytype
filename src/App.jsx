@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, Keyboard, Info, Sparkles } from 'lucide-react';
+import { Moon, Sun, Check, Copy, Keyboard, Info, Sparkles, Wand2 } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -12,7 +12,9 @@ import { SAMPLE } from './data/content';
 import { loadFont, whenFontReady } from './lib/fontLoader';
 import { fallbackFor } from './lib/typeStyles';
 import { DUR } from './lib/gsap';
+import { TEXT_ANIMATIONS, TEXT_ANIMATION_ORDER } from './lib/textAnimations';
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Analytics } from "@vercel/analytics/react";
 
 const SHORTCUTS = [
@@ -29,6 +31,30 @@ const SHORTCUTS = [
   { keys: ['Esc'], label: 'Close any panel' },
 ];
 
+// Shared between the desktop toolbar and mobile header triggers — just the
+// list of styles with a checkmark on whichever one is active.
+function AnimStyleList({ animStyle, onPick }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      {TEXT_ANIMATION_ORDER.map((key) => {
+        const active = animStyle === key;
+        return (
+          <button
+            key={key}
+            onClick={() => onPick(key)}
+            className={`flex items-center justify-between gap-3 px-3 py-2 rounded-md text-[13px] text-left transition-colors ${
+              active ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-card'
+            }`}
+          >
+            <span>{TEXT_ANIMATIONS[key].label}</span>
+            {active && <Check size={14} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function App() {
   const [isTuneOpen, setIsTuneOpen] = useState(false);
   const [isDark, setIsDark] = useState(() =>
@@ -36,6 +62,13 @@ export default function App() {
   );
   const [activeTab, setActiveTab] = useState('focus');
   const [textAnimEnabled, setTextAnimEnabled] = useState(false);
+  const [animStyle, setAnimStyle] = useState('swirl');
+  // Two separate flags, not one: the mobile and desktop style-picker
+  // triggers are both mounted at once (only CSS-hidden by breakpoint, not
+  // unmounted), so a single shared boolean drove two controlled Popovers
+  // at the same time and they fought each other into never opening.
+  const [desktopPickerOpen, setDesktopPickerOpen] = useState(false);
+  const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
   const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -282,6 +315,25 @@ export default function App() {
             <Sparkles size={15} />
           </button>
 
+          {textAnimEnabled && (
+            <Popover open={mobilePickerOpen} onOpenChange={setMobilePickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  aria-label={`Animation style: ${TEXT_ANIMATIONS[animStyle].label}. Choose a different style`}
+                  className="flex items-center justify-center w-9 h-9 rounded-full border border-border bg-background/90 backdrop-blur text-foreground shadow-sm transition-colors shrink-0"
+                >
+                  <Wand2 size={15} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1.5" align="end" sideOffset={10}>
+                <AnimStyleList
+                  animStyle={animStyle}
+                  onPick={(key) => { setAnimStyle(key); setMobilePickerOpen(false); }}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-full">
               <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
@@ -380,6 +432,26 @@ export default function App() {
             <span>Animation</span>
           </button>
 
+          {textAnimEnabled && (
+            <Popover open={desktopPickerOpen} onOpenChange={setDesktopPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  aria-label={`Animation style: ${TEXT_ANIMATIONS[animStyle].label}. Choose a different style`}
+                  title="Choose animation style"
+                  className="flex items-center justify-center w-10 h-10 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95"
+                >
+                  <Wand2 size={16} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-44 p-1.5" align="end" sideOffset={10}>
+                <AnimStyleList
+                  animStyle={animStyle}
+                  onPick={(key) => { setAnimStyle(key); setDesktopPickerOpen(false); }}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
           <button
             onClick={() => setIsDark(v => !v)}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -426,6 +498,7 @@ export default function App() {
           bodyLineHeight={bodyLineHeight}
           revealKey={revealKey}
           textAnimEnabled={textAnimEnabled}
+          animStyle={animStyle}
         />
 
         <RightTabs

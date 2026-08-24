@@ -1,18 +1,8 @@
 import { useRef, useState } from 'react';
 import { gsap, useGSAP, SplitText, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
+import { TEXT_ANIMATIONS } from '../../lib/textAnimations';
 import { SAMPLE } from '../../data/content';
 import { stack } from '../../lib/typeStyles';
-
-// A single shared swirl trajectory every character flies in along (as a
-// relative x/y offset from its own resting position, ending at 0,0) —
-// staggering the same path per character reads as one coherent swirl
-// rather than each letter going its own separate way.
-const SWIRL_PATH = [
-  { x: 240, y: -70 },
-  { x: 60, y: 160 },
-  { x: -130, y: -50 },
-  { x: 0, y: 0 },
-];
 
 // Primary's default Size control value — the scale below is relative to
 // this, so leaving the slider untouched reproduces the old fixed clamps.
@@ -33,7 +23,7 @@ const sizeFor = (len, size) => {
   return `clamp(${44 * scale}px,${10.5 * scale}vw,${168 * scale}px)`;
 };
 
-export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange, textAnimEnabled }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange, textAnimEnabled, animStyle = 'swirl' }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
 
@@ -46,6 +36,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
   const firstRun = useRef(true);
   const prevRevealKey = useRef(revealKey);
   const prevAnimEnabled = useRef(textAnimEnabled);
+  const prevAnimStyle = useRef(animStyle);
 
   useGSAP(
     () => {
@@ -66,42 +57,33 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         }
       };
 
-      // Splits the (already-synced) headline into characters and flies
-      // each one in along SWIRL_PATH. autoSplit re-splits on its own if
-      // the webfont finishes loading or the layout reflows mid-animation;
-      // reverting on completion hands the element back as plain text so
-      // it stays a normal, typeable contentEditable field afterward.
-      const playSwirl = () => {
+      // Splits the (already-synced) headline into characters and runs
+      // whichever preset is currently picked. autoSplit re-splits on its
+      // own if the webfont finishes loading or the layout reflows
+      // mid-animation; reverting on completion hands the element back as
+      // plain text so it stays a normal, typeable contentEditable field
+      // afterward.
+      const playTextAnim = () => {
         const word = wordRef.current;
         if (!word || !word.textContent.trim()) return;
+        const preset = TEXT_ANIMATIONS[animStyle] ?? TEXT_ANIMATIONS.swirl;
         // Typing into the field while it's mid-split (spans instead of
         // plain text) landed characters in the wrong place entirely —
         // browsers don't resolve cursor position through many inline
         // spans the way they do through one text node. Locking editing
-        // for the ~1-2s the swirl takes avoids that rather than trying
-        // to make split text reliably editable.
+        // for the ~1-2s the animation takes avoids that rather than
+        // trying to make split text reliably editable.
         word.contentEditable = 'false';
         SplitText.create(word, {
           type: 'chars',
           autoSplit: true,
           onSplit: (self) => {
-            gsap.set(self.chars, { transformOrigin: '50% 50%' });
-            return gsap.fromTo(
-              self.chars,
-              { opacity: 0, scale: 0.3 },
-              {
-                opacity: 1,
-                scale: 1,
-                duration: 1,
-                ease: EASE.type,
-                stagger: 0.028,
-                motionPath: { path: SWIRL_PATH, curviness: 1.25, autoRotate: true },
-                onComplete: () => {
-                  self.revert();
-                  word.contentEditable = 'true';
-                },
-              }
-            );
+            const tween = preset.build(self.chars);
+            tween.eventCallback('onComplete', () => {
+              self.revert();
+              word.contentEditable = 'true';
+            });
+            return tween;
           },
         });
       };
@@ -112,12 +94,13 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         firstRun.current = false;
         prevRevealKey.current = revealKey;
         prevAnimEnabled.current = textAnimEnabled;
+        prevAnimStyle.current = animStyle;
         sync();
         if (prefersReducedMotion()) { gsap.set(els, { opacity: 1, filter: 'blur(0px)' }); return; }
         if (textAnimEnabled) {
           gsap.set(wordRef.current, { opacity: 1, filter: 'blur(0px)' });
           gsap.fromTo(subRef.current, { opacity: 0, filter: 'blur(20px)' }, { opacity: 1, filter: 'blur(0px)', duration: DUR.slow, ease: EASE.out });
-          playSwirl();
+          playTextAnim();
         } else {
           gsap.fromTo(
             els,
@@ -128,14 +111,16 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         return;
       }
 
-      // A real pairing change (Generate Pair) or just switching Animation
-      // on gets a transition. Typing, a manual font pick, or a weight
-      // tweak should land instantly — re-animating on every keystroke
-      // would fight the person mid-type.
+      // A real pairing change (Generate Pair), switching Animation on, or
+      // picking a different style all get a transition. Typing, a manual
+      // font pick, or a weight tweak should land instantly — re-animating
+      // on every keystroke would fight the person mid-type.
       const isRegenerate = revealKey !== prevRevealKey.current;
-      const justEnabledAnim = textAnimEnabled && !prevAnimEnabled.current;
+      const styleChanged = animStyle !== prevAnimStyle.current;
+      const justEnabledAnim = textAnimEnabled && (!prevAnimEnabled.current || styleChanged);
       prevRevealKey.current = revealKey;
       prevAnimEnabled.current = textAnimEnabled;
+      prevAnimStyle.current = animStyle;
 
       if ((!isRegenerate && !justEnabledAnim) || prefersReducedMotion()) {
         sync();
@@ -147,7 +132,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         sync();
         gsap.set(wordRef.current, { opacity: 1, filter: 'blur(0px)' });
         gsap.fromTo(subRef.current, { opacity: 0, filter: 'blur(20px)' }, { opacity: 1, filter: 'blur(0px)', duration: DUR.base, ease: EASE.out, overwrite: 'auto' });
-        playSwirl();
+        playTextAnim();
         return;
       }
 
@@ -167,7 +152,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
         },
       });
     },
-    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey, textAnimEnabled] }
+    { dependencies: [text, primaryFont, secondaryFont, pControls.weight, sControls.weight, revealKey, textAnimEnabled, animStyle] }
   );
 
   return (
