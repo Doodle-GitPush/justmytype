@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, Keyboard, Info, Sparkles } from 'lucide-react';
+import { Moon, Sun, Check, Copy, Keyboard, Info } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -307,19 +307,6 @@ export default function App() {
                 </button>
               );
             })}
-
-            {/* Not a preview tab — its own entry point on the far right,
-                set off by a divider, since it replaces this whole bar
-                rather than swapping what's shown inside it. */}
-            <div className="w-px self-stretch bg-border shrink-0 mx-0.5" aria-hidden="true" />
-            <button
-              onClick={() => setAnimateMode(true)}
-              aria-label="Animate this type"
-              className="flex-1 flex flex-col items-center justify-center gap-1 py-1.5 px-1 rounded-xl transition-colors text-primary hover:bg-primary/10"
-            >
-              <Sparkles size={18} />
-              <span className="text-[10px] font-medium">Animate</span>
-            </button>
           </div>
         </nav>
 
@@ -374,16 +361,6 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setAnimateMode(true)}
-            aria-label="Animate this type"
-            title="Animate this type"
-            className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 text-foreground hover:bg-card"
-          >
-            <Sparkles size={16} />
-            <span>Animate</span>
-          </button>
-
-          <button
             onClick={() => setIsDark(v => !v)}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
             title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -419,6 +396,7 @@ export default function App() {
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
           generateRandomPair={generateRandomPair}
           onFontAdded={handleFontAdded}
+          onAnimate={() => setAnimateMode(true)}
         />
 
         <PreviewArea

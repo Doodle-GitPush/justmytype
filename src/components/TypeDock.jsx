@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Sparkles } from 'lucide-react';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
 import { stack } from '../lib/typeStyles';
@@ -151,6 +151,7 @@ export default function TypeDock({
     isTuneOpen, setIsTuneOpen,
     generateRandomPair,
     onFontAdded,
+    onAnimate,
 }) {
     const dockRef = useRef(null);
     const textareaRef = useRef(null);
@@ -556,6 +557,15 @@ export default function TypeDock({
                     <span ref={spinRef} className="flex">
                         <RefreshCw size={16} />
                     </span>
+                </button>
+
+                <button
+                    onClick={onAnimate}
+                    aria-label="Animate this type"
+                    title="Animate this type"
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+                >
+                    <Sparkles size={16} />
                 </button>
                 </div>
             </div>
