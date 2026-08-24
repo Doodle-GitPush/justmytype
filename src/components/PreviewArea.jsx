@@ -26,8 +26,6 @@ export default function PreviewArea({
   setSampleText,
   bodyLineHeight,
   revealKey,
-  textAnimEnabled,
-  animStyle,
 }) {
   const stage = useRef(null);
   const reduced = prefersReducedMotion();
@@ -95,8 +93,6 @@ export default function PreviewArea({
             revealKey={revealKey}
             bodyLineHeight={bodyLineHeight}
             onTextChange={setSampleText}
-            textAnimEnabled={textAnimEnabled}
-            animStyle={animStyle}
           />
         </div>
       </div>

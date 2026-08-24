@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, Keyboard, Info, Sparkles, Wand2 } from 'lucide-react';
+import { Moon, Sun, Check, Copy, Keyboard, Info, Sparkles } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
 import FontInfoPanel from './components/FontInfoPanel';
+import AnimateStudio from './components/AnimateStudio';
 import Presence from './components/motion/Presence';
 import Preloader from './components/Preloader';
 import { TABS } from './data/constants';
@@ -12,9 +13,7 @@ import { SAMPLE } from './data/content';
 import { loadFont, whenFontReady } from './lib/fontLoader';
 import { fallbackFor } from './lib/typeStyles';
 import { DUR } from './lib/gsap';
-import { TEXT_ANIMATIONS, TEXT_ANIMATION_ORDER } from './lib/textAnimations';
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Analytics } from "@vercel/analytics/react";
 
 const SHORTCUTS = [
@@ -31,44 +30,15 @@ const SHORTCUTS = [
   { keys: ['Esc'], label: 'Close any panel' },
 ];
 
-// Shared between the desktop toolbar and mobile header triggers — just the
-// list of styles with a checkmark on whichever one is active.
-function AnimStyleList({ animStyle, onPick }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      {TEXT_ANIMATION_ORDER.map((key) => {
-        const active = animStyle === key;
-        return (
-          <button
-            key={key}
-            onClick={() => onPick(key)}
-            className={`flex items-center justify-between gap-3 px-3 py-2 rounded-md text-[13px] text-left transition-colors ${
-              active ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-card'
-            }`}
-          >
-            <span>{TEXT_ANIMATIONS[key].label}</span>
-            {active && <Check size={14} />}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function App() {
   const [isTuneOpen, setIsTuneOpen] = useState(false);
   const [isDark, setIsDark] = useState(() =>
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
   const [activeTab, setActiveTab] = useState('focus');
-  const [textAnimEnabled, setTextAnimEnabled] = useState(false);
-  const [animStyle, setAnimStyle] = useState('swirl');
-  // Two separate flags, not one: the mobile and desktop style-picker
-  // triggers are both mounted at once (only CSS-hidden by breakpoint, not
-  // unmounted), so a single shared boolean drove two controlled Popovers
-  // at the same time and they fought each other into never opening.
-  const [desktopPickerOpen, setDesktopPickerOpen] = useState(false);
-  const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
+  // A full takeover, not an overlay toggle — entering replaces the whole
+  // editor shell with AnimateStudio; exiting is its own explicit control.
+  const [animateMode, setAnimateMode] = useState(false);
   const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -241,7 +211,22 @@ export default function App() {
   return (
     <>
       {!booted && <Preloader ready={appReady} onFinish={() => setBooted(true)} />}
-      {booted && (
+
+      {/* Animate mode replaces the whole editor shell below rather than
+          overlaying it — the dock, preview tabs, and toolbar all disappear
+          while it's up, and Back is the only way out. */}
+      {booted && animateMode && (
+        <AnimateStudio
+          primaryFont={primaryFont}
+          pControls={primaryControls}
+          text={sampleText || SAMPLE.title}
+          onTextChange={setSampleText}
+          isDark={isDark}
+          onExit={() => setAnimateMode(false)}
+        />
+      )}
+
+      {booted && !animateMode && (
       <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
 
         <FontInfoPanel font={infoFont} onClose={() => setInfoFont(null)} />
@@ -295,44 +280,17 @@ export default function App() {
 
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-end gap-2 px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
-          {/* Same toggle as the desktop toolbar — that one is hidden below
-              lg, so without this the whole feature was unreachable on
+          {/* Same entry point as the desktop toolbar — that one is hidden
+              below lg, so without this Animate mode was unreachable on
               anything narrower than 1024px (a laptop with the browser not
               maximized, or any phone/tablet). */}
           <button
-            onClick={() => {
-              setTextAnimEnabled(v => !v);
-              setActiveTab('focus');
-            }}
-            aria-pressed={textAnimEnabled}
-            aria-label={textAnimEnabled ? 'Turn off text animation' : 'Turn on text animation'}
-            className={`flex items-center justify-center w-9 h-9 rounded-full border shadow-sm transition-colors shrink-0 ${
-              textAnimEnabled
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background/90 backdrop-blur text-foreground border-border'
-            }`}
+            onClick={() => setAnimateMode(true)}
+            aria-label="Animate this type"
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-border bg-background/90 backdrop-blur text-foreground shadow-sm transition-colors shrink-0"
           >
             <Sparkles size={15} />
           </button>
-
-          {textAnimEnabled && (
-            <Popover open={mobilePickerOpen} onOpenChange={setMobilePickerOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  aria-label={`Animation style: ${TEXT_ANIMATIONS[animStyle].label}. Choose a different style`}
-                  className="flex items-center justify-center w-9 h-9 rounded-full border border-border bg-background/90 backdrop-blur text-foreground shadow-sm transition-colors shrink-0"
-                >
-                  <Wand2 size={15} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-44 p-1.5" align="end" sideOffset={10}>
-                <AnimStyleList
-                  animStyle={animStyle}
-                  onPick={(key) => { setAnimStyle(key); setMobilePickerOpen(false); }}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
 
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-full">
@@ -415,42 +373,14 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => {
-              setTextAnimEnabled(v => !v);
-              setActiveTab('focus');
-            }}
-            aria-pressed={textAnimEnabled}
-            aria-label={textAnimEnabled ? 'Turn off text animation' : 'Turn on text animation'}
-            title={textAnimEnabled ? 'Turn off text animation' : 'Turn on text animation'}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 border ${
-              textAnimEnabled
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background/80 backdrop-blur text-foreground border-border hover:bg-card'
-            }`}
+            onClick={() => setAnimateMode(true)}
+            aria-label="Animate this type"
+            title="Animate this type"
+            className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 text-foreground hover:bg-card"
           >
             <Sparkles size={16} />
-            <span>Animation</span>
+            <span>Animate</span>
           </button>
-
-          {textAnimEnabled && (
-            <Popover open={desktopPickerOpen} onOpenChange={setDesktopPickerOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  aria-label={`Animation style: ${TEXT_ANIMATIONS[animStyle].label}. Choose a different style`}
-                  title="Choose animation style"
-                  className="flex items-center justify-center w-10 h-10 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95"
-                >
-                  <Wand2 size={16} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-44 p-1.5" align="end" sideOffset={10}>
-                <AnimStyleList
-                  animStyle={animStyle}
-                  onPick={(key) => { setAnimStyle(key); setDesktopPickerOpen(false); }}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
 
           <button
             onClick={() => setIsDark(v => !v)}
@@ -497,8 +427,6 @@ export default function App() {
           sampleText={sampleText} setSampleText={setSampleText}
           bodyLineHeight={bodyLineHeight}
           revealKey={revealKey}
-          textAnimEnabled={textAnimEnabled}
-          animStyle={animStyle}
         />
 
         <RightTabs
