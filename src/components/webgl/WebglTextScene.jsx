@@ -143,9 +143,16 @@ export default function WebglTextScene({ text, fontFamily, fontWeight, isDark })
     const container = containerRef.current;
     if (!container) return;
 
+    // Touch devices are a reasonable proxy for "weaker GPU, no mouse to
+    // hover" — antialiasing is one of the more expensive things a mobile
+    // GPU does per frame, and a capped pixel ratio keeps the fill-rate
+    // (drawing buffer size) from scaling all the way up to a phone's
+    // often very high native devicePixelRatio.
+    const isCoarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: !isCoarsePointer, alpha: true, powerPreference: 'high-performance' });
     } catch {
       // Browser WebGL disabled, GPU blocklisted, extension blocking it,
       // etc. — say so instead of leaving the toggle looking like it did
@@ -154,7 +161,7 @@ export default function WebglTextScene({ text, fontFamily, fontWeight, isDark })
       queueMicrotask(() => setGlFailed(true));
       return;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isCoarsePointer ? 1.5 : 2));
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -244,77 +251,106 @@ export default function WebglTextScene({ text, fontFamily, fontWeight, isDark })
   useEffect(() => {
     const st = stateRef.current;
     if (!st) return;
-    const { scene, group } = st;
+    let cancelled = false;
 
-    const { canvas, aspect, texelX, texelY } = rasterizeText(text, fontFamily, fontWeight);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
+    // ctx.fillText() against a webfont that's still downloading doesn't
+    // fall back to the stack's next font while it waits — in Chrome and
+    // Firefox it can silently paint nothing at all, and since this is a
+    // one-shot rasterization (not redrawn on font load), that leaves the
+    // whole mesh permanently blank: every fragment's height reads near
+    // zero, so the shader's `discard` drops every pixel. document.fonts
+    // covers both Google Fonts (loaded async on font-pair change) and a
+    // freshly-uploaded Compare font, so waiting on it here beats trying
+    // to special-case either source.
+    const ready = document.fonts?.ready ?? Promise.resolve();
+    const specificLoad = document.fonts?.load
+      ? document.fonts.load(`${fontWeight} 200px ${fontFamily}`).catch(() => {})
+      : Promise.resolve();
 
-    const width = 5.6;
-    const height = width / aspect;
-    const segX = Math.min(400, Math.round(width * 40));
-    const segY = Math.min(240, Math.round(height * 40));
-    const geometry = new THREE.PlaneGeometry(width, height, segX, segY);
+    Promise.all([ready, specificLoad]).then(() => {
+      if (cancelled) return;
+      const st2 = stateRef.current;
+      if (!st2) return;
+      const { scene, group } = st2;
 
-    const material = new THREE.ShaderMaterial({
-      vertexShader: VERTEX_SHADER,
-      fragmentShader: FRAGMENT_SHADER,
-      uniforms: {
-        uTexture: { value: texture },
-        uExtrude: { value: 0 },
-        uTexel: { value: (texelX + texelY) / 2 },
-        uColor: { value: ACCENT },
-        uLightDir: { value: new THREE.Vector3(0.4, 0.6, 1) },
-        uIsDark: { value: isDark ? 1 : 0 },
-      },
-      side: THREE.DoubleSide,
+      const { canvas, aspect, texelX, texelY } = rasterizeText(text, fontFamily, fontWeight);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+
+      // The vertex shader samples the texture 4x per vertex for lighting
+      // normals, so segment density is a direct GPU cost — halve it on
+      // touch devices, where it's both harder to see the difference (no
+      // hover/zoom scrutiny) and more likely to actually matter.
+      const isCoarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+      const density = isCoarsePointer ? 20 : 40;
+      const width = 5.6;
+      const height = width / aspect;
+      const segX = Math.min(isCoarsePointer ? 200 : 400, Math.round(width * density));
+      const segY = Math.min(isCoarsePointer ? 120 : 240, Math.round(height * density));
+      const geometry = new THREE.PlaneGeometry(width, height, segX, segY);
+
+      const material = new THREE.ShaderMaterial({
+        vertexShader: VERTEX_SHADER,
+        fragmentShader: FRAGMENT_SHADER,
+        uniforms: {
+          uTexture: { value: texture },
+          uExtrude: { value: 0 },
+          uTexel: { value: (texelX + texelY) / 2 },
+          uColor: { value: ACCENT },
+          uLightDir: { value: new THREE.Vector3(0.4, 0.6, 1) },
+          uIsDark: { value: isDark ? 1 : 0 },
+        },
+        side: THREE.DoubleSide,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+
+      // Frame whatever text this is — a single word and a full sentence
+      // need very different camera distances, or one of them ends up
+      // either microscopic or spilling past the edges of the canvas.
+      const cam = st2.camera;
+      if (cam) {
+        const fovRad = (cam.fov * Math.PI) / 180;
+        const padding = 1.35; // headroom for the group's own idle rotation
+        const distForHeight = height * padding / (2 * Math.tan(fovRad / 2));
+        const distForWidth = width * padding / (2 * Math.tan(fovRad / 2) * cam.aspect);
+        const targetZ = Math.max(distForHeight, distForWidth, 3);
+        if (prefersReducedMotion()) {
+          cam.position.z = targetZ;
+        } else {
+          gsap.to(cam.position, { z: targetZ, duration: DUR.slow, ease: EASE.out });
+        }
+      }
+
+      if (st2.mesh) {
+        group.remove(st2.mesh);
+        st2.mesh.geometry.dispose();
+        st2.mesh.material.uniforms.uTexture.value?.dispose();
+        st2.mesh.material.dispose();
+      }
+      group.add(mesh);
+      st2.mesh = mesh;
+      scene.userData.aspect = aspect;
+
+      const reduced = prefersReducedMotion();
+      if (reduced) {
+        material.uniforms.uExtrude.value = 1;
+      } else {
+        gsap.fromTo(
+          material.uniforms.uExtrude,
+          { value: 0 },
+          { value: 1, duration: DUR.slow * 1.4, ease: EASE.type }
+        );
+        gsap.fromTo(mesh.scale, { x: 0.92, y: 0.92, z: 0.92 }, { x: 1, y: 1, z: 1, duration: DUR.slow, ease: EASE.out });
+      }
     });
 
-    const mesh = new THREE.Mesh(geometry, material);
-
-    // Frame whatever text this is — a single word and a full sentence need
-    // very different camera distances, or one of them ends up either
-    // microscopic or spilling past the edges of the canvas.
-    const cam = st.camera;
-    if (cam) {
-      const fovRad = (cam.fov * Math.PI) / 180;
-      const padding = 1.35; // headroom for the group's own idle rotation
-      const distForHeight = height * padding / (2 * Math.tan(fovRad / 2));
-      const distForWidth = width * padding / (2 * Math.tan(fovRad / 2) * cam.aspect);
-      const targetZ = Math.max(distForHeight, distForWidth, 3);
-      if (prefersReducedMotion()) {
-        cam.position.z = targetZ;
-      } else {
-        gsap.to(cam.position, { z: targetZ, duration: DUR.slow, ease: EASE.out });
-      }
-    }
-
-    if (st.mesh) {
-      group.remove(st.mesh);
-      st.mesh.geometry.dispose();
-      st.mesh.material.uniforms.uTexture.value?.dispose();
-      st.mesh.material.dispose();
-    }
-    group.add(mesh);
-    st.mesh = mesh;
-    scene.userData.aspect = aspect;
-
-    const reduced = prefersReducedMotion();
-    if (reduced) {
-      material.uniforms.uExtrude.value = 1;
-    } else {
-      gsap.fromTo(
-        material.uniforms.uExtrude,
-        { value: 0 },
-        { value: 1, duration: DUR.slow * 1.4, ease: EASE.type }
-      );
-      gsap.fromTo(mesh.scale, { x: 0.92, y: 0.92, z: 0.92 }, { x: 1, y: 1, z: 1, duration: DUR.slow, ease: EASE.out });
-    }
-
     return () => {
-      // Only torn down here if this effect re-fires before unmount; the
-      // outer unmount cleanup above handles the final disposal.
+      cancelled = true;
+      // Mesh teardown, if any, is only handled here when this effect
+      // re-fires before unmount; the outer unmount cleanup above handles
+      // final disposal.
     };
   }, [text, fontFamily, fontWeight, isDark]);
 
