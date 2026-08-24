@@ -17,6 +17,10 @@ import ScrubField from './ScrubField';
 export default function AnimateStudio({ primaryFont, pControls, text, onTextChange, isDark, onExit }) {
   const wordRef = useRef(null);
   const stageRef = useRef(null);
+  // The still-split SplitText instance from the animation that just
+  // finished, if any — see the comment above `revertActiveSplit` for why
+  // this isn't reverted immediately on completion.
+  const activeSplitRef = useRef(null);
 
   const [styleKey, setStyleKey] = useState('swirl');
   const [speed, setSpeed] = useState(1);
@@ -54,10 +58,30 @@ export default function AnimateStudio({ primaryFont, pControls, text, onTextChan
     gsap.fromTo(stageRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' });
   }, []);
 
+  // Splitting into individual characters breaks the natural kerning
+  // between letter pairs (each character becomes its own isolated inline
+  // box), so the split state and the plain-text state don't measure
+  // pixel-identical even once every char is back at opacity 1 / scale 1 /
+  // x,y 0 — reverting from one to the other always causes a tiny
+  // horizontal reflow. Reverting the instant the tween completed put that
+  // reflow exactly at the moment someone was watching the result settle,
+  // which read as the text randomly shifting. Deferred here to whichever
+  // happens first: the next play (revert happens right as a new animation
+  // starts, so the reflow is masked by something already moving) or the
+  // next time the field is focused to edit it (a moment already
+  // accompanied by a cursor appearing, so a pixel of drift isn't the only
+  // thing changing).
+  const revertActiveSplit = () => {
+    if (!activeSplitRef.current) return;
+    activeSplitRef.current.revert();
+    activeSplitRef.current = null;
+  };
+
   useGSAP(
     () => {
       const word = wordRef.current;
       if (!word || !word.textContent.trim()) return;
+      revertActiveSplit();
       if (prefersReducedMotion()) { gsap.set(word, { opacity: 1 }); return; }
 
       const preset = TEXT_ANIMATIONS[styleKey] ?? TEXT_ANIMATIONS.swirl;
@@ -74,8 +98,8 @@ export default function AnimateStudio({ primaryFont, pControls, text, onTextChan
         onSplit: (self) => {
           const tween = preset.build(self.chars, { speed, intensity });
           tween.eventCallback('onComplete', () => {
-            self.revert();
             word.contentEditable = 'true';
+            activeSplitRef.current = self;
           });
           return tween;
         },
@@ -87,6 +111,9 @@ export default function AnimateStudio({ primaryFont, pControls, text, onTextChan
     // re-split and re-fire it.
     { dependencies: [playToken] }
   );
+
+  // Cleanup on unmount (e.g. Back to editor while still split).
+  useEffect(() => () => revertActiveSplit(), []);
 
   return (
     <div className="fixed inset-0 z-[90] bg-background text-foreground flex flex-col">
@@ -125,6 +152,7 @@ export default function AnimateStudio({ primaryFont, pControls, text, onTextChan
           role="textbox"
           aria-label="Text to animate"
           title="Click to edit"
+          onFocus={revertActiveSplit}
           onInput={(e) => onTextChange?.(e.currentTarget.textContent)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertLineBreak'); }
