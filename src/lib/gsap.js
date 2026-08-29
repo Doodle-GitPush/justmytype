@@ -3,9 +3,8 @@ import { useGSAP } from '@gsap/react';
 import { SplitText } from 'gsap/SplitText';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
-import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 
-gsap.registerPlugin(useGSAP, SplitText, ScrollTrigger, ScrambleTextPlugin, MotionPathPlugin);
+gsap.registerPlugin(useGSAP, SplitText, ScrollTrigger, ScrambleTextPlugin);
 
 // House motion language — every animation in the app pulls from these so the
 // whole product moves with one voice instead of a dozen ad-hoc easings.
@@ -32,7 +31,7 @@ export const prefersReducedMotion = () =>
 
 gsap.defaults({ ease: EASE.out, duration: DUR.base });
 
-export { gsap, useGSAP, SplitText, ScrollTrigger, ScrambleTextPlugin, MotionPathPlugin };
+export { gsap, useGSAP, SplitText, ScrollTrigger, ScrambleTextPlugin };
 
 // Dev-only handle for debugging in the browser console.
 if (import.meta.env?.DEV && typeof window !== 'undefined') window.gsap = gsap;

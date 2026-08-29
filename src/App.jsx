@@ -4,7 +4,6 @@ import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
 import FontInfoPanel from './components/FontInfoPanel';
-import AnimateStudio from './components/AnimateStudio';
 import Presence from './components/motion/Presence';
 import Preloader from './components/Preloader';
 import { TABS } from './data/constants';
@@ -36,9 +35,6 @@ export default function App() {
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
   const [activeTab, setActiveTab] = useState('focus');
-  // A full takeover, not an overlay toggle — entering replaces the whole
-  // editor shell with AnimateStudio; exiting is its own explicit control.
-  const [animateMode, setAnimateMode] = useState(false);
   const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
 
   const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
@@ -211,22 +207,7 @@ export default function App() {
   return (
     <>
       {!booted && <Preloader ready={appReady} onFinish={() => setBooted(true)} />}
-
-      {/* Animate mode replaces the whole editor shell below rather than
-          overlaying it — the dock, preview tabs, and toolbar all disappear
-          while it's up, and Back is the only way out. */}
-      {booted && animateMode && (
-        <AnimateStudio
-          primaryFont={primaryFont}
-          pControls={primaryControls}
-          text={sampleText || SAMPLE.title}
-          onTextChange={setSampleText}
-          isDark={isDark}
-          onExit={() => setAnimateMode(false)}
-        />
-      )}
-
-      {booted && !animateMode && (
+      {booted && (
       <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
 
         <FontInfoPanel font={infoFont} onClose={() => setInfoFont(null)} />
@@ -396,7 +377,6 @@ export default function App() {
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
           generateRandomPair={generateRandomPair}
           onFontAdded={handleFontAdded}
-          onAnimate={() => setAnimateMode(true)}
         />
 
         <PreviewArea

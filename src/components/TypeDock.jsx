@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Sparkles } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload } from 'lucide-react';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
 import { stack } from '../lib/typeStyles';
@@ -151,7 +151,6 @@ export default function TypeDock({
     isTuneOpen, setIsTuneOpen,
     generateRandomPair,
     onFontAdded,
-    onAnimate,
 }) {
     const dockRef = useRef(null);
     const textareaRef = useRef(null);
@@ -331,10 +330,9 @@ export default function TypeDock({
                 />
             </div>
 
-            <div className="pointer-events-none w-full max-w-[640px] flex items-end gap-2">
             <div
                 data-bar
-                className="pointer-events-auto flex-1 min-w-0 bg-background/90 backdrop-blur-xl border border-border rounded-[32px] shadow-xl overflow-hidden"
+                className="pointer-events-auto w-full max-w-[640px] bg-background/90 backdrop-blur-xl border border-border rounded-[32px] shadow-xl overflow-hidden"
             >
                 {/* Morph region. grid-rows 0fr -> 1fr animates to the content's
                     natural height without hard-coding one, and the whole dock
@@ -561,20 +559,6 @@ export default function TypeDock({
                 </button>
 
                 </div>
-            </div>
-
-            {/* Outside the bar rather than one more icon inside it — this
-                opens a whole different mode, not another control on the
-                same surface. */}
-            <button
-                onClick={onAnimate}
-                aria-label="Animate this type"
-                title="Animate this type"
-                className="pointer-events-auto shrink-0 flex items-center gap-2 h-[52px] px-4 rounded-full bg-background/90 backdrop-blur-xl border border-border shadow-xl text-primary transition-all hover:bg-card hover:scale-105 active:scale-95"
-            >
-                <Sparkles size={16} />
-                <span className="text-[13px] font-semibold hidden sm:inline">Animate</span>
-            </button>
             </div>
         </div>
     );
