@@ -1,10 +1,10 @@
 import { registerLoadedFont } from '../lib/fontLoader';
 
 export let FONTS = [
-    'Wanted Sans', 'Plus Jakarta Sans', 'Bowlby One', 'Urbanist', 'Wavehaus', 'Trap',
+    'Wanted Sans', 'Plus Jakarta Sans', 'Bowlby One', 'Urbanist',
     'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Raleway', 'Poppins',
     'Nunito', 'Source Sans 3', 'Oswald', 'Merriweather', 'Playfair Display',
-    'DM Sans', 'Outfit', 'Space Grotesk', 'Sora', 'Cabinet Grotesk',
+    'DM Sans', 'Outfit', 'Space Grotesk', 'Sora',
     'Figtree', 'Fraunces', 'Libre Baskerville', 'Cormorant Garamond',
     'EB Garamond', 'Lora', 'Josefin Sans', 'Quicksand', 'Karla',
     'Work Sans', 'Rubik', 'Barlow', 'Exo 2', 'Manrope',

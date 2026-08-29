@@ -16,20 +16,27 @@ const WEIGHT_GROUPS = [
     { label: 'Bold', min: 600, max: 900 }
 ];
 
-function Pill({ active, onClick, children, className }) {
+function Pill({ active, onClick, children, count, disabled, className }) {
     return (
         <button
             onClick={onClick}
+            disabled={disabled}
             aria-pressed={active}
             className={cn(
-                "text-[11px] px-3 py-1.5 rounded-full border font-medium transition-all duration-200 active:scale-95",
+                "text-[11px] px-3 py-1.5 rounded-full border font-medium transition-all duration-200 active:scale-95 flex items-center gap-1.5",
                 active
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground",
+                disabled && "opacity-40 cursor-not-allowed hover:border-border hover:text-muted-foreground active:scale-100",
                 className
             )}
         >
             {children}
+            {count !== undefined && (
+                <span className={cn("tabular-nums", active ? "opacity-80" : "opacity-50")}>
+                    {count}
+                </span>
+            )}
         </button>
     );
 }
@@ -190,23 +197,58 @@ export default function TypeDock({
         setRequireItalic(false);
     };
 
-    const filteredList = useMemo(() => {
-        return fontList.filter(fName => {
-            const meta = FONT_METADATA.find(m => m.family === fName);
-            if (!meta) return true; // Keep local fonts
+    // FONT_METADATA.find() per font turned every filter pass into O(list ×
+    // metadata) — ~1,900 × ~1,930 comparisons worst case. A lookup map
+    // makes each check O(1) instead. FONT_METADATA is a plain module
+    // export, not React state, so it can't be a real dependency — fontList
+    // changing is what actually signals it was just replaced (both are
+    // reassigned together in fetchAllFonts).
+    const metaByFamily = useMemo(() => {
+        const map = new Map();
+        for (const m of FONT_METADATA) map.set(m.family, m);
+        return map;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fontList]);
 
-            if (selectedCategories.length > 0 && !selectedCategories.includes(meta.category)) return false;
-            if (requireItalic && !meta.hasItalic) return false;
-            if (selectedWeights.length > 0) {
-                const hasMatchingWeight = selectedWeights.some(label => {
-                    const group = WEIGHT_GROUPS.find(w => w.label === label);
-                    return meta.weights.some(w => w >= group.min && w <= group.max);
-                });
-                if (!hasMatchingWeight) return false;
+    // One pass computes the filtered list and every facet's count together,
+    // so picking a filter shows how many fonts it would leave *before*
+    // you click it — each count reflects the other active facets, not the
+    // one it belongs to (turning on Serif still tells you how many Bold
+    // Serif fonts there are even while Bold is already selected).
+    const { filteredList, categoryCounts, weightCounts, italicCount } = useMemo(() => {
+        const catCounts = Object.fromEntries(CATEGORIES.map(c => [c, 0]));
+        const wCounts = Object.fromEntries(WEIGHT_GROUPS.map(w => [w.label, 0]));
+        let italicN = 0;
+        const list = [];
+
+        for (const fName of fontList) {
+            const meta = metaByFamily.get(fName);
+            // Locally bundled fonts with no Google data (e.g. Wanted Sans)
+            // have nothing to check against — keep them, but they can't
+            // count toward a category/weight/italic facet we know nothing
+            // about for them.
+            if (!meta) { list.push(fName); continue; }
+
+            const passesCategory = selectedCategories.length === 0 || selectedCategories.includes(meta.category);
+            const passesItalic = !requireItalic || meta.hasItalic;
+            const passesWeight = selectedWeights.length === 0 || selectedWeights.some(label => {
+                const group = WEIGHT_GROUPS.find(w => w.label === label);
+                return meta.weights.some(w => w >= group.min && w <= group.max);
+            });
+
+            if (passesCategory && passesItalic && passesWeight) list.push(fName);
+
+            if (passesWeight && passesItalic && meta.category in catCounts) catCounts[meta.category] += 1;
+            if (passesCategory && passesItalic) {
+                for (const w of WEIGHT_GROUPS) {
+                    if (meta.weights.some(mw => mw >= w.min && mw <= w.max)) wCounts[w.label] += 1;
+                }
             }
-            return true;
-        });
-    }, [fontList, selectedCategories, selectedWeights, requireItalic]);
+            if (passesCategory && passesWeight && meta.hasItalic) italicN += 1;
+        }
+
+        return { filteredList: list, categoryCounts: catCounts, weightCounts: wCounts, italicCount: italicN };
+    }, [fontList, metaByFamily, selectedCategories, selectedWeights, requireItalic]);
 
     useEffect(() => {
         if (onFilteredListChange) onFilteredListChange(filteredList);
@@ -429,15 +471,20 @@ export default function TypeDock({
                             <div className="flex flex-col gap-3">
                                 <span className="text-[11px] font-medium text-foreground">Category</span>
                                 <div className="flex flex-wrap gap-2">
-                                    {CATEGORIES.map(cat => (
-                                        <Pill
-                                            key={cat}
-                                            active={selectedCategories.includes(cat)}
-                                            onClick={() => toggle(selectedCategories, setSelectedCategories)(cat)}
-                                        >
-                                            {cat}
-                                        </Pill>
-                                    ))}
+                                    {CATEGORIES.map(cat => {
+                                        const active = selectedCategories.includes(cat);
+                                        return (
+                                            <Pill
+                                                key={cat}
+                                                active={active}
+                                                disabled={!active && categoryCounts[cat] === 0}
+                                                count={categoryCounts[cat]}
+                                                onClick={() => toggle(selectedCategories, setSelectedCategories)(cat)}
+                                            >
+                                                {cat}
+                                            </Pill>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -446,17 +493,24 @@ export default function TypeDock({
                             <div className="flex flex-col gap-3">
                                 <span className="text-[11px] font-medium text-foreground">Weight & Style</span>
                                 <div className="flex flex-wrap gap-2">
-                                    {WEIGHT_GROUPS.map(w => (
-                                        <Pill
-                                            key={w.label}
-                                            active={selectedWeights.includes(w.label)}
-                                            onClick={() => toggle(selectedWeights, setSelectedWeights)(w.label)}
-                                        >
-                                            {w.label}
-                                        </Pill>
-                                    ))}
+                                    {WEIGHT_GROUPS.map(w => {
+                                        const active = selectedWeights.includes(w.label);
+                                        return (
+                                            <Pill
+                                                key={w.label}
+                                                active={active}
+                                                disabled={!active && weightCounts[w.label] === 0}
+                                                count={weightCounts[w.label]}
+                                                onClick={() => toggle(selectedWeights, setSelectedWeights)(w.label)}
+                                            >
+                                                {w.label}
+                                            </Pill>
+                                        );
+                                    })}
                                     <Pill
                                         active={requireItalic}
+                                        disabled={!requireItalic && italicCount === 0}
+                                        count={italicCount}
                                         onClick={() => setRequireItalic(!requireItalic)}
                                         className="italic"
                                     >
@@ -464,6 +518,18 @@ export default function TypeDock({
                                     </Pill>
                                 </div>
                             </div>
+
+                            {filteredList.length === 0 && (
+                                <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-muted/60 text-[11px] text-muted-foreground">
+                                    <span>No fonts match these filters.</span>
+                                    <button
+                                        onClick={clearFilters}
+                                        className="font-semibold text-primary hover:text-primary/80 transition-colors shrink-0"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </Section>
 
