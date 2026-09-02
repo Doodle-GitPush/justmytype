@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, Keyboard, Info } from 'lucide-react';
+import { Moon, Sun, Check, Copy, Keyboard, Info, Link2 } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
@@ -12,6 +12,7 @@ import { SAMPLE } from './data/content';
 import { loadFont, whenFontReady } from './lib/fontLoader';
 import { fallbackFor } from './lib/typeStyles';
 import { DUR } from './lib/gsap';
+import { buildShareUrl, readShareState } from './lib/shareLink';
 import { Switch } from "@/components/ui/switch";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -30,24 +31,33 @@ const SHORTCUTS = [
 ];
 
 export default function App() {
+  // Read once per mount — a shared link's pairing/controls become the
+  // starting state instead of the hardcoded defaults below, wherever it
+  // specifies them. Recomputing on every render is harmless (it's just a
+  // query-string parse), and only the state initializers below — which
+  // React only ever calls once — actually consume the result.
+  const shared = readShareState();
+
   const [isTuneOpen, setIsTuneOpen] = useState(false);
   const [isDark, setIsDark] = useState(() =>
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
-  const [activeTab, setActiveTab] = useState('focus');
-  const [bodyLineHeight, setBodyLineHeight] = useState(1.7);
+  const [activeTab, setActiveTab] = useState(() => shared?.activeTab ?? 'focus');
+  const [bodyLineHeight, setBodyLineHeight] = useState(() => shared?.bodyLineHeight ?? 1.7);
 
-  const [primaryFont, setPrimaryFont] = useState('Plus Jakarta Sans');
+  const [primaryFont, setPrimaryFont] = useState(() => shared?.primaryFont ?? 'Plus Jakarta Sans');
   const [primaryLocked, setPrimaryLocked] = useState(false);
-  const [primaryControls, setPrimaryControls] = useState({ size: 24, weight: 700, lh: 1.3, ls: 0 });
+  const [primaryControls, setPrimaryControls] = useState(() => shared?.primaryControls ?? { size: 24, weight: 700, lh: 1.3, ls: 0 });
 
-  const [secondaryFont, setSecondaryFont] = useState('Urbanist');
+  const [secondaryFont, setSecondaryFont] = useState(() => shared?.secondaryFont ?? 'Urbanist');
   const [secondaryLocked, setSecondaryLocked] = useState(false);
-  const [secondaryControls, setSecondaryControls] = useState({ size: 16, weight: 400, lh: 1.7, ls: 0 });
+  const [secondaryControls, setSecondaryControls] = useState(() => shared?.secondaryControls ?? { size: 16, weight: 400, lh: 1.7, ls: 0 });
 
-  const [sampleText, setSampleText] = useState(SAMPLE.title);
+  const [sampleText, setSampleText] = useState(() => shared?.sampleText ?? SAMPLE.title);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkCopyError, setLinkCopyError] = useState(false);
   const [filteredFonts, setFilteredFonts] = useState(FONTS);
 
   const [infoFont, setInfoFont] = useState(null);
@@ -73,6 +83,15 @@ export default function App() {
   const [booted, setBooted] = useState(false);
   const bootedRef = useRef(false);
   useEffect(() => { bootedRef.current = booted; }, [booted]);
+
+  // The ?s= param has done its job feeding the state initializers above —
+  // clear it so the address bar doesn't keep showing a link that no longer
+  // matches what's on screen the moment something changes, and so the
+  // Share button always builds a fresh one from current state rather than
+  // someone re-sharing whatever they were sent.
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
 
   useEffect(() => {
     // Promise.allSettled — a rejected font load must never hang the
@@ -204,6 +223,23 @@ export default function App() {
     }
   };
 
+  // ── Share link ──────────────────────────────────────
+  const handleCopyShareLink = async () => {
+    const url = buildShareUrl({
+      primaryFont, primaryControls,
+      secondaryFont, secondaryControls,
+      bodyLineHeight, sampleText, activeTab,
+    });
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setLinkCopyError(true);
+      setTimeout(() => setLinkCopyError(false), 2600);
+    }
+  };
+
   return (
     <>
       {!booted && <Preloader ready={appReady} onFinish={() => setBooted(true)} />}
@@ -261,6 +297,18 @@ export default function App() {
 
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-end gap-2 px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
+          <button
+            onClick={handleCopyShareLink}
+            aria-label="Copy a link to this exact pairing"
+            className={`flex items-center justify-center w-9 h-9 rounded-full border shadow-sm transition-colors shrink-0 ${
+              linkCopied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
+                : linkCopyError ? 'text-destructive border-destructive/30'
+                : 'bg-background/90 backdrop-blur text-foreground border-border'
+            }`}
+          >
+            {linkCopied ? <Check size={15} /> : <Link2 size={15} />}
+          </button>
+
           <div className="flex items-center gap-1.5 z-50 bg-background/90 backdrop-blur border border-border rounded-full p-1 shadow-sm shrink-0">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-full">
               <Sun size={14} className={!isDark ? 'text-foreground' : 'text-muted-foreground'} />
@@ -339,6 +387,19 @@ export default function App() {
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
             <span>{copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}</span>
+          </button>
+
+          <button
+            className={`flex items-center gap-2 bg-background/80 backdrop-blur border px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 ${
+              linkCopied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
+                : linkCopyError ? 'text-destructive border-destructive/30'
+                : 'text-foreground border-border hover:bg-card'
+            }`}
+            onClick={handleCopyShareLink}
+            title="Copy a link to this exact pairing"
+          >
+            {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
+            <span>{linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Share'}</span>
           </button>
 
           <button
