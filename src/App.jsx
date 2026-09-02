@@ -14,6 +14,8 @@ import { fallbackFor } from './lib/typeStyles';
 import { DUR } from './lib/gsap';
 import { buildShareUrl, readShareState } from './lib/shareLink';
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 
 const SHORTCUTS = [
@@ -29,6 +31,27 @@ const SHORTCUTS = [
   { keys: ['?'], label: 'Show this shortcuts panel' },
   { keys: ['Esc'], label: 'Close any panel' },
 ];
+
+// A single compact icon circle for the desktop toolbar, with a custom
+// tooltip standing in for the label these used to carry as visible text —
+// smaller and shorter without losing the "what does this do" answer, just
+// deferred to hover instead of always on screen.
+const ToolbarIconButton = ({ tooltip, className, icon, ...props }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button
+        className={cn(
+          "flex items-center justify-center w-9 h-9 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95",
+          className
+        )}
+        {...props}
+      >
+        {icon}
+      </button>
+    </TooltipTrigger>
+    <TooltipContent>{tooltip}</TooltipContent>
+  </Tooltip>
+);
 
 export default function App() {
   // Read once per mount — a shared link's pairing/controls become the
@@ -241,7 +264,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <TooltipProvider delayDuration={200}>
       {!booted && <Preloader ready={appReady} onFinish={() => setBooted(true)} />}
       {booted && (
       <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
@@ -343,15 +366,13 @@ export default function App() {
         <div className="hidden lg:flex absolute top-6 right-8 items-center gap-3 z-50">
           {/* Font details — one button for two fonts, so it picks which. */}
           <div className="relative" ref={infoRef}>
-            <button
+            <ToolbarIconButton
               onClick={() => setInfoMenuOpen(v => !v)}
               aria-expanded={infoMenuOpen}
               aria-label="Font details"
-              title="Font details"
-              className="flex items-center justify-center w-10 h-10 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95"
-            >
-              <Info size={16} />
-            </button>
+              tooltip="Font details"
+              icon={<Info size={15} />}
+            />
 
             <Presence
               show={infoMenuOpen}
@@ -377,39 +398,36 @@ export default function App() {
             </Presence>
           </div>
 
-          <button
-            className={`flex items-center gap-2 bg-background/80 backdrop-blur border px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 ${
+          <ToolbarIconButton
+            onClick={handleCopyCss}
+            aria-label={copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}
+            tooltip={copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}
+            icon={copied ? <Check size={15} /> : <Copy size={15} />}
+            className={
               copied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
                 : copyError ? 'text-destructive border-destructive/30'
-                : 'text-foreground border-border hover:bg-card'
-            }`}
-            onClick={handleCopyCss}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            <span>{copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}</span>
-          </button>
+                : undefined
+            }
+          />
 
-          <button
-            className={`flex items-center gap-2 bg-background/80 backdrop-blur border px-4 py-2.5 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 ${
+          <ToolbarIconButton
+            onClick={handleCopyShareLink}
+            aria-label={linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Copy a link to this exact pairing'}
+            tooltip={linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Copy share link'}
+            icon={linkCopied ? <Check size={15} /> : <Link2 size={15} />}
+            className={
               linkCopied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
                 : linkCopyError ? 'text-destructive border-destructive/30'
-                : 'text-foreground border-border hover:bg-card'
-            }`}
-            onClick={handleCopyShareLink}
-            title="Copy a link to this exact pairing"
-          >
-            {linkCopied ? <Check size={16} /> : <Link2 size={16} />}
-            <span>{linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Share'}</span>
-          </button>
+                : undefined
+            }
+          />
 
-          <button
+          <ToolbarIconButton
             onClick={() => setIsDark(v => !v)}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-            title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-            className="flex items-center justify-center w-10 h-10 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95"
-          >
-            {isDark ? <Moon size={16} /> : <Sun size={16} />}
-          </button>
+            tooltip={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            icon={isDark ? <Moon size={15} /> : <Sun size={15} />}
+          />
         </div>
 
         {/* Custom font added — confirms the drop/upload worked and where
@@ -461,6 +479,6 @@ export default function App() {
         <Analytics />
       </div>
       )}
-    </>
+    </TooltipProvider>
   );
 }
