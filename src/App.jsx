@@ -33,14 +33,21 @@ const SHORTCUTS = [
 
 // A compact icon circle for the desktop toolbar that grows rightward on
 // hover (or keyboard focus) to reveal a label, rather than a floating
-// tooltip — same technique RightTabs already uses for its preview-mode
-// pill: the label span sits collapsed at max-w-0/opacity-0 and expands in
-// place, so the button's own edge is what moves instead of something
-// appearing separately above or below it.
+// tooltip — same idea RightTabs already uses for its preview-mode pill,
+// but that one animates max-width, which looks snappy rather than smooth:
+// the box reaches its actual content width the moment max-width crosses
+// it, then sits idle for whatever's left of the transition, so it visibly
+// front-loads instead of moving at a constant rate. A grid track animating
+// from 0fr to 1fr doesn't have that ceiling — its width tracks the eased
+// curve for the whole duration, the same trick TypeDock's Tune drawer
+// already uses for its height reveal. The label itself also slides and
+// fades in on its own faster beat, so the reveal reads as two things
+// happening (the pill growing, the word arriving) rather than one flat
+// width change.
 const ToolbarIconButton = ({ label, className, icon, ...props }) => (
   <button
     className={cn(
-      "group flex items-center h-9 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all duration-200 hover:bg-card active:scale-95",
+      "group flex items-center h-9 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-colors duration-200 hover:bg-card active:scale-95",
       className
     )}
     {...props}
@@ -48,14 +55,21 @@ const ToolbarIconButton = ({ label, className, icon, ...props }) => (
     <span className="shrink-0 w-9 h-9 flex items-center justify-center">{icon}</span>
     <span
       className={cn(
-        "text-[13px] font-medium min-w-0 whitespace-nowrap overflow-hidden",
-        "max-w-0 opacity-0 pr-0",
-        "transition-[max-width,opacity,padding] duration-300 ease-out",
-        "group-hover:max-w-[160px] group-hover:opacity-100 group-hover:pr-3.5",
-        "group-focus-visible:max-w-[160px] group-focus-visible:opacity-100 group-focus-visible:pr-3.5"
+        "grid grid-cols-[0fr] group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr]",
+        "transition-[grid-template-columns] duration-[380ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
       )}
     >
-      {label}
+      <span className="overflow-hidden min-w-0">
+        <span
+          className={cn(
+            "block text-[13px] font-medium whitespace-nowrap pl-0.5 pr-3.5",
+            "opacity-0 -translate-x-1 transition-[opacity,transform] duration-200 ease-out",
+            "group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0"
+          )}
+        >
+          {label}
+        </span>
+      </span>
     </span>
   </button>
 );
