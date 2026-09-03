@@ -14,7 +14,6 @@ import { fallbackFor } from './lib/typeStyles';
 import { DUR } from './lib/gsap';
 import { buildShareUrl, readShareState } from './lib/shareLink';
 import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -32,25 +31,33 @@ const SHORTCUTS = [
   { keys: ['Esc'], label: 'Close any panel' },
 ];
 
-// A single compact icon circle for the desktop toolbar, with a custom
-// tooltip standing in for the label these used to carry as visible text —
-// smaller and shorter without losing the "what does this do" answer, just
-// deferred to hover instead of always on screen.
-const ToolbarIconButton = ({ tooltip, className, icon, ...props }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <button
-        className={cn(
-          "flex items-center justify-center w-9 h-9 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all hover:bg-card hover:scale-105 active:scale-95",
-          className
-        )}
-        {...props}
-      >
-        {icon}
-      </button>
-    </TooltipTrigger>
-    <TooltipContent>{tooltip}</TooltipContent>
-  </Tooltip>
+// A compact icon circle for the desktop toolbar that grows rightward on
+// hover (or keyboard focus) to reveal a label, rather than a floating
+// tooltip — same technique RightTabs already uses for its preview-mode
+// pill: the label span sits collapsed at max-w-0/opacity-0 and expands in
+// place, so the button's own edge is what moves instead of something
+// appearing separately above or below it.
+const ToolbarIconButton = ({ label, className, icon, ...props }) => (
+  <button
+    className={cn(
+      "group flex items-center h-9 bg-background/80 backdrop-blur border border-border rounded-full text-foreground shadow-sm transition-all duration-200 hover:bg-card active:scale-95",
+      className
+    )}
+    {...props}
+  >
+    <span className="shrink-0 w-9 h-9 flex items-center justify-center">{icon}</span>
+    <span
+      className={cn(
+        "text-[13px] font-medium min-w-0 whitespace-nowrap overflow-hidden",
+        "max-w-0 opacity-0 pr-0",
+        "transition-[max-width,opacity,padding] duration-300 ease-out",
+        "group-hover:max-w-[160px] group-hover:opacity-100 group-hover:pr-3.5",
+        "group-focus-visible:max-w-[160px] group-focus-visible:opacity-100 group-focus-visible:pr-3.5"
+      )}
+    >
+      {label}
+    </span>
+  </button>
 );
 
 export default function App() {
@@ -264,7 +271,7 @@ export default function App() {
   };
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <>
       {!booted && <Preloader ready={appReady} onFinish={() => setBooted(true)} />}
       {booted && (
       <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
@@ -370,7 +377,7 @@ export default function App() {
               onClick={() => setInfoMenuOpen(v => !v)}
               aria-expanded={infoMenuOpen}
               aria-label="Font details"
-              tooltip="Font details"
+              label="Font details"
               icon={<Info size={15} />}
             />
 
@@ -401,7 +408,7 @@ export default function App() {
           <ToolbarIconButton
             onClick={handleCopyCss}
             aria-label={copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}
-            tooltip={copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}
+            label={copied ? 'Copied!' : copyError ? 'Copy failed' : 'Copy CSS'}
             icon={copied ? <Check size={15} /> : <Copy size={15} />}
             className={
               copied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
@@ -412,8 +419,8 @@ export default function App() {
 
           <ToolbarIconButton
             onClick={handleCopyShareLink}
-            aria-label={linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Copy a link to this exact pairing'}
-            tooltip={linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Copy share link'}
+            aria-label={linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Share — copy a link to this exact pairing'}
+            label={linkCopied ? 'Copied!' : linkCopyError ? 'Copy failed' : 'Share'}
             icon={linkCopied ? <Check size={15} /> : <Link2 size={15} />}
             className={
               linkCopied ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
@@ -425,7 +432,7 @@ export default function App() {
           <ToolbarIconButton
             onClick={() => setIsDark(v => !v)}
             aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-            tooltip={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            label={isDark ? 'Switch to light' : 'Switch to dark'}
             icon={isDark ? <Moon size={15} /> : <Sun size={15} />}
           />
         </div>
@@ -479,6 +486,6 @@ export default function App() {
         <Analytics />
       </div>
       )}
-    </TooltipProvider>
+    </>
   );
 }
