@@ -617,7 +617,7 @@ export default function TypeDock({
                     onClick={handleGenerate}
                     aria-label="Generate new font pair"
                     title="Generate new font pair (Space)"
-                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:bg-primary/95 shadow-[0_4px_16px_hsl(var(--primary)/0.3)] transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:bg-primary/95 shadow-sm transition-all duration-200 hover:scale-105 active:scale-95"
                 >
                     <span ref={spinRef} className="flex">
                         <RefreshCw size={16} />
