@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { gsap, useGSAP, EASE, prefersReducedMotion } from '@/lib/gsap';
+import { whenFontReady } from '@/lib/fontLoader';
 
 const WORD = 'JustMyType';
 const CURSOR_COLOR = '#FF4400';
@@ -35,21 +36,11 @@ export default function Preloader({ ready, onFinish }) {
         return;
       }
 
-      // `ch` is the width of "0" in the current font — a fine stand-in for
-      // a monospace face, but Wanted Sans is proportional, so it landed the
-      // cursor short or past the real last glyph. Measuring the element's
-      // own natural width before clipping it keeps the two in sync.
-      const fullWidth = el.scrollWidth + CURSOR_GAP;
       gsap.set(el, { width: 0, borderRightColor: CURSOR_COLOR });
 
-      gsap.to(el, {
-        width: fullWidth,
-        duration: 0.55,
-        ease: `steps(${WORD.length})`,
-        onComplete: () => setTypingDone(true),
-      });
-
-      // A snap on/off toggle, not a fade — like a real caret.
+      // A snap on/off toggle, not a fade — like a real caret. Starts right
+      // away so there's a live cursor on screen while the wordmark's own
+      // font is still loading, instead of a dead blank rectangle.
       gsap.to(el, {
         borderRightColor: 'transparent',
         duration: 0.5,
@@ -57,6 +48,29 @@ export default function Preloader({ ready, onFinish }) {
         repeat: -1,
         yoyo: true,
       });
+
+      let cancelled = false;
+
+      // Wait for Wanted Sans itself before measuring — `scrollWidth` read
+      // against the fallback stack (whatever's on screen before this font
+      // swaps in) gave a width that no longer matched once the real font's
+      // glyph metrics landed, so the clip animated to the wrong edge and the
+      // cursor ended up sitting mid-glyph or floating past the last letter.
+      // Given more rope than the app's general 3s font-swap cap: this is the
+      // one font the user is already staring at a loading screen for, so
+      // it's worth a longer wait to get it right before measuring.
+      whenFontReady('Wanted Sans', 6000).then(() => {
+        if (cancelled || !typeRef.current) return;
+        const fullWidth = typeRef.current.scrollWidth + CURSOR_GAP;
+        gsap.to(typeRef.current, {
+          width: fullWidth,
+          duration: 0.55,
+          ease: `steps(${WORD.length})`,
+          onComplete: () => setTypingDone(true),
+        });
+      });
+
+      return () => { cancelled = true; };
     },
     { scope: root }
   );
