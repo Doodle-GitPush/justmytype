@@ -1,40 +1,60 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { FONT_METADATA } from '../data/fonts';
 import { axesFor, axisName, weightRangeFor, OT_FEATURES, featureEnabled } from '../lib/typeStyles';
 import { track } from '../lib/achievements';
 import ScrubField from './ScrubField';
 import { cn } from "@/lib/utils";
 
-/** A collapsible sub-section, so axes/features don't bury the four basics. */
-function Disclosure({ title, count, onReset, children }) {
-    const [open, setOpen] = useState(false);
+// How the OpenType toggles are grouped in the panel.
+const FEATURE_GROUPS = [
+    { title: 'Ligatures & kerning', tags: ['kern', 'liga', 'calt', 'dlig'] },
+    { title: 'Letterforms', tags: ['swsh', 'salt', 'smcp', 'c2sc', 'case'] },
+    { title: 'Numbers', tags: ['onum', 'lnum', 'tnum', 'frac', 'zero'] },
+];
+const SETS = ['ss01', 'ss02', 'ss03', 'ss04', 'ss05'];
+const FEATURE_BY_TAG = Object.fromEntries(OT_FEATURES.map(f => [f.tag, f]));
+
+function Tabs({ tabs, value, onChange }) {
     return (
-        <div className="border-t border-border/60 pt-2">
-            <div className="flex items-center gap-1">
+        <div role="tablist" className="flex p-0.5 bg-muted rounded-lg gap-0.5">
+            {tabs.map(t => (
                 <button
+                    key={t.id}
                     type="button"
-                    onClick={() => setOpen(v => !v)}
-                    aria-expanded={open}
-                    className="flex-1 flex items-center gap-1.5 py-1 text-[11px] font-semibold text-foreground"
+                    role="tab"
+                    aria-selected={value === t.id}
+                    onClick={() => onChange(t.id)}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all",
+                        value === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    )}
                 >
-                    <ChevronDown size={12} className={cn("transition-transform", open ? "rotate-0" : "-rotate-90")} />
-                    {title}
-                    {count !== undefined && <span className="text-muted-foreground font-medium tabular-nums">{count}</span>}
+                    {t.label}
+                    {t.badge ? <span className="min-w-[14px] h-[14px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] leading-[14px] tabular-nums">{t.badge}</span> : null}
                 </button>
-                {onReset && open && (
-                    <button
-                        type="button"
-                        onClick={onReset}
-                        aria-label={`Reset ${title}`}
-                        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                    >
-                        <RotateCcw size={11} />
-                    </button>
-                )}
-            </div>
-            {open && <div className="pt-2">{children}</div>}
+            ))}
         </div>
+    );
+}
+
+function Toggle({ on, onClick, children, title, className }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={on}
+            title={title}
+            className={cn(
+                "text-[11px] px-2.5 py-1 rounded-md border font-medium transition-colors",
+                on
+                    ? "bg-primary/10 text-primary border-primary/40"
+                    : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/30",
+                className
+            )}
+        >
+            {children}
+        </button>
     );
 }
 
@@ -98,8 +118,21 @@ export default function FontControls({ font, controls, setControls, lhValue, set
 
     const changedFeatures = OT_FEATURES.filter(f => featureEnabled(controls.features, f.tag) !== !!f.on).length;
 
+    const [tab, setTab] = useState('basics');
+    const changedAxes = axes.filter(a => controls.axes?.[a.tag] !== undefined && controls.axes[a.tag] !== a.def).length;
+    const tabs = [
+        { id: 'basics', label: 'Basics' },
+        ...(axes.length ? [{ id: 'axes', label: 'Axes', badge: changedAxes }] : []),
+        { id: 'features', label: 'OpenType', badge: changedFeatures },
+    ];
+    // A font without axes can't stay on the Axes tab.
+    const current = tabs.some(t => t.id === tab) ? tab : 'basics';
+
     return (
         <div className="flex flex-col gap-3">
+            <Tabs tabs={tabs} value={current} onChange={setTab} />
+
+            {current === 'basics' && (
             <div className="grid grid-cols-2 gap-2">
                 <ScrubField
                     label="Size"
@@ -149,68 +182,79 @@ export default function FontControls({ font, controls, setControls, lhValue, set
                     onChange={(v) => setControls({ ...controls, ls: v })}
                 />
             </div>
-
-            {axes.length > 0 && (
-                <Disclosure
-                    title="Variable axes"
-                    count={axes.length}
-                    onReset={() => setControls({ ...controls, axes: {} })}
-                >
-                    <div className="flex flex-col gap-2">
-                        {axes.map(a => {
-                            const step = axisStep(a);
-                            return (
-                                <div key={a.tag} className="flex flex-col gap-1">
-                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                        <span className="font-medium text-foreground/80">{axisName(a.tag)}</span>
-                                        <span className="font-mono">{a.tag} · {a.min}–{a.max}</span>
-                                    </div>
-                                    <ScrubField
-                                        label={a.tag}
-                                        value={controls.axes?.[a.tag] ?? a.def}
-                                        min={a.min} max={a.max} step={step}
-                                        precision={step < 1 ? (step < 0.1 ? 2 : 1) : 0}
-                                        sensitivity={Math.max(0.5, 160 / ((a.max - a.min) / step))}
-                                        onChange={(v) => setAxis(a.tag, v)}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </Disclosure>
             )}
 
-            <Disclosure
-                title="OpenType features"
-                count={changedFeatures || undefined}
-                onReset={() => setControls({ ...controls, features: {} })}
-            >
-                <div className="flex flex-wrap gap-1.5">
-                    {OT_FEATURES.map(f => {
-                        const on = featureEnabled(controls.features, f.tag);
+            {current === 'axes' && (
+                <div className="flex flex-col gap-3">
+                    {axes.map(a => {
+                        const step = axisStep(a);
+                        const value = controls.axes?.[a.tag] ?? a.def;
+                        const precision = step < 1 ? (step < 0.1 ? 2 : 1) : 0;
                         return (
-                            <button
-                                key={f.tag}
-                                type="button"
-                                onClick={() => toggleFeature(f.tag)}
-                                aria-pressed={on}
-                                title={`'${f.tag}'`}
-                                className={cn(
-                                    "text-[10.5px] px-2 py-1 rounded-full border font-medium transition-colors",
-                                    on
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/40"
-                                )}
-                            >
-                                {f.label}
-                            </button>
+                            <label key={a.tag} className="flex flex-col gap-1">
+                                <span className="flex items-baseline justify-between gap-2 text-[11px]">
+                                    <span className="font-medium text-foreground truncate">
+                                        {axisName(a.tag)} <span className="font-mono text-[10px] text-muted-foreground">{a.tag}</span>
+                                    </span>
+                                    <span className="font-mono tabular-nums text-foreground">{Number(value).toFixed(precision)}</span>
+                                </span>
+                                <input
+                                    type="range"
+                                    min={a.min} max={a.max} step={step}
+                                    value={value}
+                                    onChange={(e) => setAxis(a.tag, Number(e.target.value))}
+                                    onDoubleClick={() => setAxis(a.tag, a.def)}
+                                    aria-label={axisName(a.tag)}
+                                    className="w-full h-1.5 accent-[hsl(var(--primary))] cursor-pointer"
+                                />
+                            </label>
                         );
                     })}
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>Double-click a slider to reset it.</span>
+                        {changedAxes > 0 && (
+                            <button type="button" onClick={() => setControls({ ...controls, axes: {} })} className="flex items-center gap-1 hover:text-foreground">
+                                <RotateCcw size={10} /> Reset all
+                            </button>
+                        )}
+                    </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
-                    Only features this font actually includes will change anything.
-                </p>
-            </Disclosure>
+            )}
+
+            {current === 'features' && (
+                <div className="flex flex-col gap-3">
+                    {FEATURE_GROUPS.map(g => (
+                        <div key={g.title} className="flex flex-col gap-1.5">
+                            <span className="text-[10px] font-medium text-muted-foreground">{g.title}</span>
+                            <div className="flex flex-wrap gap-1">
+                                {g.tags.map(tag => (
+                                    <Toggle key={tag} on={featureEnabled(controls.features, tag)} onClick={() => toggleFeature(tag)} title={`'${tag}'`}>
+                                        {FEATURE_BY_TAG[tag].label}
+                                    </Toggle>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-medium text-muted-foreground">Stylistic sets</span>
+                        <div className="grid grid-cols-5 gap-1">
+                            {SETS.map((tag, i) => (
+                                <Toggle key={tag} on={featureEnabled(controls.features, tag)} onClick={() => toggleFeature(tag)} title={`'${tag}'`} className="px-0 text-center tabular-nums">
+                                    {i + 1}
+                                </Toggle>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground leading-snug">
+                        <span>Only features this font includes change anything.</span>
+                        {changedFeatures > 0 && (
+                            <button type="button" onClick={() => setControls({ ...controls, features: {} })} className="shrink-0 flex items-center gap-1 hover:text-foreground">
+                                <RotateCcw size={10} /> Reset
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
