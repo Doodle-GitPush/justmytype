@@ -14,8 +14,10 @@ Findings marked **measured** were reproduced against a running build; findings m
 > modals now carry dialog semantics and icon buttons have labels, but they are not
 > yet routed through Radix `Dialog` and have no focus trap.
 >
-> **Still open and highest value: 5 (shareable URL state) and 6 (a real pairing
-> engine).** Those remain the two changes that would most improve the product.
+> Since then, 5 (shareable links) and 6 (a real pairing engine, `src/lib/pairing.js`)
+> have shipped too, along with variable axes, OpenType features, realistic
+> layouts, a glyph explorer, the Studio modes (Animate, Poster, Letter Lab) and
+> the Kern Game / Type Match / Achievements games — see the README.
 
 ---
 
