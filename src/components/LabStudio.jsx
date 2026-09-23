@@ -7,7 +7,7 @@ import { download } from '../lib/motionExport';
 import { track } from '../lib/achievements';
 import useElementSize from '../hooks/useElementSize';
 import ScrubField from './ScrubField';
-import { StudioHeader, Group, Chip, Swatches } from './studio/StudioUI';
+import { StudioHeader, StudioPanel, Group, Chip, Swatches, Segmented, stageClass } from './studio/StudioUI';
 
 /**
  * Letter Lab — build patterns and layouts out of letters: grids, radial
@@ -81,33 +81,35 @@ export default function LabStudio({ primaryFont, pControls, secondaryFont, sCont
 
   return (
     <div className="fixed inset-0 z-[90] bg-background text-foreground flex flex-col">
-      <StudioHeader title="Letter Lab" subtitle={family} subtitleStyle={{ fontFamily: stack(family) }} onExit={onExit}>
-        <button
-          onClick={() => setSeed(Math.floor(Math.random() * 1e6))}
-          aria-label="Shuffle"
-          title="Shuffle (new seed)"
-          className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted"
-        >
-          <Shuffle size={16} />
-        </button>
-        <button onClick={exportPng} className="h-10 px-4 rounded-full bg-primary text-primary-foreground text-[13px] font-semibold flex items-center gap-2">
-          <Download size={15} /> <span className="hidden sm:inline">Export PNG</span>
-        </button>
-      </StudioHeader>
+      <StudioHeader title="Letter Lab" subtitle={family} subtitleStyle={{ fontFamily: stack(family) }} onExit={onExit} />
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        <div ref={stageRef} className="flex-1 min-h-[55vh] lg:min-h-0 m-3 sm:m-6 flex items-center justify-center overflow-hidden">
+        <div ref={stageRef} className={`${stageClass} p-3 sm:p-6 flex items-center justify-center overflow-hidden`}>
           <canvas ref={canvasRef} style={{ width: fit.w, height: fit.h }} className="shadow-2xl rounded-sm" aria-label={`${LAB_MODES[mode].label} pattern`} />
         </div>
 
-        <aside className="lg:w-[340px] shrink-0 border-t lg:border-t-0 lg:border-l border-border overflow-y-auto p-4 sm:p-5 flex flex-col gap-6 bg-background">
-          <Group title="Mode">
+        <StudioPanel
+          footer={
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSeed(Math.floor(Math.random() * 1e6))}
+                className="h-10 flex-1 rounded-xl border border-border text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-muted"
+              >
+                <Shuffle size={14} /> Shuffle
+              </button>
+              <button onClick={exportPng} className="h-10 flex-1 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold flex items-center justify-center gap-2">
+                <Download size={14} /> Export PNG
+              </button>
+            </div>
+          }
+        >
+          <Group title="Pattern">
             <div className="grid grid-cols-3 gap-1.5">
-              {LAB_ORDER.map((m) => <Chip key={m} active={mode === m} onClick={() => setMode(m)} className="rounded-xl">{LAB_MODES[m].label}</Chip>)}
+              {LAB_ORDER.map((m) => <Chip key={m} active={mode === m} onClick={() => setMode(m)} className="rounded-lg py-2">{LAB_MODES[m].label}</Chip>)}
             </div>
           </Group>
 
-          <Group title={usesWord ? 'Word' : 'Glyphs'}>
+          <Group title={usesWord ? 'Word' : 'Letters'}>
             {usesWord ? (
               <input
                 value={word}
@@ -120,32 +122,40 @@ export default function LabStudio({ primaryFont, pControls, secondaryFont, sCont
               <input
                 value={glyphs}
                 onChange={(e) => setGlyphs(e.target.value)}
-                aria-label="Glyphs to use"
+                aria-label="Letters to use"
                 placeholder="Letters to repeat"
                 className="h-10 rounded-xl border border-border bg-card px-3 text-[14px] outline-none focus:ring-2 focus:ring-primary/30"
                 style={{ fontFamily: stack(family) }}
               />
             )}
             {mode === 'mask' && (
-              <input
-                value={glyphs}
-                onChange={(e) => setGlyphs(e.target.value)}
-                aria-label="Pattern glyphs"
-                placeholder="Pattern glyphs"
-                className="h-9 rounded-xl border border-border bg-card px-3 text-[13px] outline-none"
-              />
+              <label className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+                Fill pattern with
+                <input
+                  value={glyphs}
+                  onChange={(e) => setGlyphs(e.target.value)}
+                  aria-label="Pattern letters"
+                  placeholder="Pattern letters"
+                  className="h-10 rounded-xl border border-border bg-card px-3 text-[14px] outline-none focus:ring-2 focus:ring-primary/30 text-foreground"
+                  style={{ fontFamily: stack(family) }}
+                />
+              </label>
             )}
-            <div className="flex gap-1.5">
-              <Chip active={role === 'primary'} onClick={() => setRole('primary')} className="flex-1 truncate">{primaryFont}</Chip>
-              <Chip active={role === 'secondary'} onClick={() => setRole('secondary')} className="flex-1 truncate">{secondaryFont}</Chip>
-            </div>
+            <Segmented
+              value={role}
+              onChange={setRole}
+              options={[
+                { id: 'primary', label: primaryFont, style: { fontFamily: stack(primaryFont) } },
+                { id: 'secondary', label: secondaryFont, style: { fontFamily: stack(secondaryFont) } },
+              ]}
+            />
           </Group>
 
           <Group
-            title="Settings"
+            title={`${LAB_MODES[mode].label} settings`}
             aside={
-              <button onClick={() => setParamsBy((all) => ({ ...all, [mode]: labDefaults(mode) }))} aria-label="Reset settings" className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted">
-                <RotateCcw size={12} />
+              <button onClick={() => setParamsBy((all) => ({ ...all, [mode]: labDefaults(mode) }))} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                <RotateCcw size={11} /> Reset
               </button>
             }
           >
@@ -165,16 +175,11 @@ export default function LabStudio({ primaryFont, pControls, secondaryFont, sCont
             </div>
           </Group>
 
-          <Group title="Colour">
+          <Group title="Look">
             <Swatches palettes={PALETTES} value={paletteId} onChange={setPaletteId} />
+            <Segmented value={aspect} onChange={setAspect} options={ASPECTS.filter((a) => a.id !== 'fit')} />
           </Group>
-
-          <Group title="Canvas">
-            <div className="flex flex-wrap gap-1.5">
-              {ASPECTS.filter((a) => a.id !== 'fit').map((a) => <Chip key={a.id} active={aspect === a.id} onClick={() => setAspect(a.id)}>{a.label}</Chip>)}
-            </div>
-          </Group>
-        </aside>
+        </StudioPanel>
       </div>
     </div>
   );

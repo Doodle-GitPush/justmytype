@@ -8,7 +8,7 @@ import { track } from '../lib/achievements';
 import { ASPECTS } from '../lib/studio';
 import useElementSize from '../hooks/useElementSize';
 import ScrubField from './ScrubField';
-import { StudioHeader, Group, Chip, ColorField } from './studio/StudioUI';
+import { StudioHeader, StudioPanel, Group, Chip, ColorField, Segmented, stageClass } from './studio/StudioUI';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'jmt:poster:v1';
@@ -29,6 +29,13 @@ export default function PosterStudio({ primaryFont, pControls, secondaryFont, sC
   const [poster, setPoster] = useState(() => loadSaved() ?? TEMPLATES[0].make(text));
   const [selectedId, setSelectedId] = useState(() => poster.layers[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState('poster');
+  const [exportScale, setExportScale] = useState(2);
+  // Selecting a layer (on the artboard or in the list) jumps to its settings.
+  const select = (id) => {
+    setSelectedId(id);
+    if (id) setTab('text');
+  };
   const stageRef = useRef(null);
   const imageInput = useRef(null);
   const drag = useRef(null);
@@ -58,7 +65,7 @@ export default function PosterStudio({ primaryFont, pControls, secondaryFont, sC
     const dark = 0.299 * r + 0.587 * g + 0.114 * b < 140;
     const layer = makeLayer({ text: 'New text', color: dark ? '#ffffff' : '#111111' });
     setPoster((p) => ({ ...p, layers: [...p.layers, layer] }));
-    setSelectedId(layer.id);
+    select(layer.id);
   };
 
   const removeLayer = (id) => {
@@ -71,7 +78,7 @@ export default function PosterStudio({ primaryFont, pControls, secondaryFont, sC
     if (!src) return;
     const copy = makeLayer({ ...src, id: undefined, x: Math.min(0.95, src.x + 0.03), y: Math.min(0.95, src.y + 0.03) });
     setPoster((p) => ({ ...p, layers: [...p.layers, copy] }));
-    setSelectedId(copy.id);
+    select(copy.id);
   };
 
   const move = (id, dir) =>
@@ -107,7 +114,7 @@ export default function PosterStudio({ primaryFont, pControls, secondaryFont, sC
 
   const onPointerDown = (e, layer) => {
     e.stopPropagation();
-    setSelectedId(layer.id);
+    select(layer.id);
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { id: layer.id, sx: e.clientX, sy: e.clientY, x: layer.x, y: layer.y };
   };
@@ -150,21 +157,12 @@ export default function PosterStudio({ primaryFont, pControls, secondaryFont, sC
 
   return (
     <div className="fixed inset-0 z-[90] bg-background text-foreground flex flex-col">
-      <StudioHeader title="Poster" subtitle={`${primaryFont} + ${secondaryFont}`} onExit={onExit}>
-        <button
-          onClick={() => exportPng(2)}
-          disabled={busy}
-          className="h-10 px-4 rounded-full bg-primary text-primary-foreground text-[13px] font-semibold flex items-center gap-2 disabled:opacity-60"
-        >
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-          <span className="hidden sm:inline">Export PNG</span>
-        </button>
-      </StudioHeader>
+      <StudioHeader title="Poster" subtitle={`${primaryFont} + ${secondaryFont}`} onExit={onExit} />
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <div
           ref={stageRef}
-          className="flex-1 min-h-[55vh] lg:min-h-0 m-3 sm:m-6 flex items-center justify-center overflow-hidden"
+          className={`${stageClass} p-3 sm:p-6 flex items-center justify-center overflow-hidden`}
           onPointerDown={() => setSelectedId(null)}
         >
           <div style={{ width: W * k, height: H * k }} className="relative shadow-2xl">
@@ -210,115 +208,176 @@ export default function PosterStudio({ primaryFont, pControls, secondaryFont, sC
           </div>
         </div>
 
-        <aside className="lg:w-[340px] shrink-0 border-t lg:border-t-0 lg:border-l border-border overflow-y-auto p-4 sm:p-5 flex flex-col gap-6 bg-background">
-          <Group title="Template">
-            <div className="flex flex-wrap gap-1.5">
-              {TEMPLATES.map((t) => <Chip key={t.id} onClick={() => applyTemplate(t)}>{t.label}</Chip>)}
-            </div>
-          </Group>
-
-          <Group title="Canvas">
-            <div className="flex flex-wrap gap-1.5">
-              {ASPECTS.filter((a) => a.id !== 'fit').map((a) => (
-                <Chip key={a.id} active={poster.aspect === a.id} onClick={() => setPoster((p) => ({ ...p, aspect: a.id }))}>{a.label}</Chip>
-              ))}
-            </div>
-            <div className="flex gap-1.5">
-              {['solid', 'gradient', 'image'].map((t) => (
-                <Chip key={t} active={poster.bg.type === t} onClick={() => (t === 'image' && !poster.bg.image ? imageInput.current?.click() : setBg({ type: t }))} className="capitalize">{t}</Chip>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <ColorField label={poster.bg.type === 'gradient' ? 'From' : 'Fill'} value={poster.bg.a} onChange={(v) => setBg({ a: v })} />
-              {poster.bg.type === 'gradient' && <ColorField label="To" value={poster.bg.b} onChange={(v) => setBg({ b: v })} />}
-              {poster.bg.type === 'gradient' && (
-                <ScrubField label="Angle" suffix="°" value={poster.bg.angle} min={0} max={360} step={1} sensitivity={1} onChange={(v) => setBg({ angle: v })} />
-              )}
-            </div>
-            {poster.bg.type === 'image' && (
-              <button onClick={() => imageInput.current?.click()} className="flex items-center gap-2 text-[12px] text-muted-foreground hover:text-foreground">
-                <ImagePlus size={14} /> Replace image
-              </button>
-            )}
-            <input ref={imageInput} type="file" accept="image/*" className="hidden" onChange={(e) => onImage(e.target.files?.[0])} />
-          </Group>
-
-          <Group
-            title="Layers"
-            aside={
-              <button onClick={addLayer} className="flex items-center gap-1 text-[11px] font-semibold text-primary">
-                <Plus size={13} /> Add text
-              </button>
-            }
-          >
-            <div className="flex flex-col gap-1">
-              {[...poster.layers].reverse().map((l) => (
-                <div
-                  key={l.id}
-                  className={cn('flex items-center gap-1 rounded-lg border px-2 py-1.5', l.id === selectedId ? 'border-primary bg-primary/5' : 'border-border')}
-                >
-                  <button onClick={() => setSelectedId(l.id)} className="flex-1 min-w-0 text-left text-[13px] truncate" style={{ fontFamily: stack(families[l.role]) }}>
-                    {l.text.replace(/\n/g, ' ') || '(empty)'}
-                  </button>
-                  <button onClick={() => move(l.id, 1)} aria-label="Bring forward" className="p-1 rounded hover:bg-muted text-muted-foreground"><ChevronUp size={13} /></button>
-                  <button onClick={() => move(l.id, -1)} aria-label="Send backward" className="p-1 rounded hover:bg-muted text-muted-foreground"><ChevronDown size={13} /></button>
-                  <button onClick={() => duplicate(l.id)} aria-label="Duplicate layer" className="p-1 rounded hover:bg-muted text-muted-foreground"><Copy size={12} /></button>
-                  <button onClick={() => removeLayer(l.id)} aria-label="Delete layer" className="p-1 rounded hover:bg-muted text-muted-foreground"><Trash2 size={12} /></button>
-                </div>
-              ))}
-            </div>
-          </Group>
-
-          {selected ? (
-            <Group title="Selected text">
-              <textarea
-                value={selected.text}
-                onChange={(e) => update(selected.id, { text: e.target.value })}
-                rows={2}
-                aria-label="Layer text"
-                className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-primary/30"
+        <StudioPanel
+          top={
+            <Segmented
+              value={tab}
+              onChange={setTab}
+              options={[{ id: 'poster', label: 'Poster' }, { id: 'text', label: 'Text', badge: poster.layers.length }]}
+            />
+          }
+          footer={
+            <div className="flex items-center gap-2">
+              <Segmented
+                className="flex-1"
+                value={exportScale}
+                onChange={setExportScale}
+                options={[{ id: 2, label: '2000 px' }, { id: 4, label: '4000 px' }]}
               />
-              <div className="flex gap-1.5">
-                <Chip active={selected.role === 'primary'} onClick={() => update(selected.id, { role: 'primary' })} className="flex-1 truncate">{primaryFont}</Chip>
-                <Chip active={selected.role === 'secondary'} onClick={() => update(selected.id, { role: 'secondary' })} className="flex-1 truncate">{secondaryFont}</Chip>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <ScrubField label="Size" value={selected.size} min={8} max={1200} step={1} sensitivity={1} onChange={(v) => update(selected.id, { size: v })} />
-                {weightField(selected)}
-                <ScrubField label="Line" value={selected.lh} min={0.6} max={2.5} step={0.01} precision={2} sensitivity={4} onChange={(v) => update(selected.id, { lh: v })} />
-                <ScrubField label="Letter" value={selected.ls} min={-0.2} max={1} step={0.01} precision={2} sensitivity={6} onChange={(v) => update(selected.id, { ls: v })} />
-                <ScrubField label="Rotate" suffix="°" value={selected.rotation} min={-180} max={180} step={1} sensitivity={1} onChange={(v) => update(selected.id, { rotation: v })} />
-                <ScrubField label="Opacity" value={selected.opacity} min={0} max={1} step={0.01} precision={2} sensitivity={3} onChange={(v) => update(selected.id, { opacity: v })} />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {['left', 'center', 'right'].map((a) => (
-                  <Chip key={a} active={selected.align === a} onClick={() => update(selected.id, { align: a })} className="capitalize">{a}</Chip>
-                ))}
-                <Chip active={selected.upper} onClick={() => update(selected.id, { upper: !selected.upper })}>AA</Chip>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <ColorField label="Fill" value={selected.color} onChange={(v) => update(selected.id, { color: v })} />
-                <Chip active={selected.fill} onClick={() => update(selected.id, { fill: !selected.fill })} className="rounded-lg">{selected.fill ? 'Filled' : 'No fill'}</Chip>
-                <ColorField label="Line" value={selected.strokeColor} onChange={(v) => update(selected.id, { strokeColor: v })} />
-                <ScrubField label="Outline" suffix="px" value={selected.stroke} min={0} max={30} step={0.5} precision={1} sensitivity={4} onChange={(v) => update(selected.id, { stroke: v })} />
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {BLENDS.map((b) => (
-                  <Chip key={b} active={selected.blend === b} onClick={() => update(selected.id, { blend: b })} className="capitalize">{b}</Chip>
-                ))}
-              </div>
-            </Group>
-          ) : (
-            <p className="text-[12px] text-muted-foreground">Click text on the poster to edit it. Drag to move; arrow keys nudge.</p>
-          )}
-
-          <Group title="Export">
-            <div className="flex gap-1.5">
-              <Chip onClick={() => exportPng(2)} disabled={busy}>PNG 2000px</Chip>
-              <Chip onClick={() => exportPng(4)} disabled={busy}>PNG 4000px</Chip>
+              <button
+                onClick={() => exportPng(exportScale)}
+                disabled={busy}
+                className="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold flex items-center gap-2 disabled:opacity-60"
+              >
+                {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} PNG
+              </button>
             </div>
-          </Group>
-        </aside>
+          }
+        >
+          {tab === 'poster' ? (
+            <>
+              <Group title="Start from a template">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {TEMPLATES.map((t) => <Chip key={t.id} onClick={() => applyTemplate(t)} className="rounded-lg py-2">{t.label}</Chip>)}
+                </div>
+              </Group>
+
+              <Group title="Size">
+                <Segmented
+                  value={poster.aspect}
+                  onChange={(id) => setPoster((p) => ({ ...p, aspect: id }))}
+                  options={ASPECTS.filter((a) => a.id !== 'fit')}
+                />
+              </Group>
+
+              <Group title="Background">
+                <Segmented
+                  value={poster.bg.type}
+                  onChange={(t) => (t === 'image' && !poster.bg.image ? imageInput.current?.click() : setBg({ type: t }))}
+                  options={[{ id: 'solid', label: 'Solid' }, { id: 'gradient', label: 'Gradient' }, { id: 'image', label: 'Image' }]}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <ColorField label={poster.bg.type === 'gradient' ? 'From' : 'Fill'} value={poster.bg.a} onChange={(v) => setBg({ a: v })} />
+                  {poster.bg.type === 'gradient' && <ColorField label="To" value={poster.bg.b} onChange={(v) => setBg({ b: v })} />}
+                  {poster.bg.type === 'gradient' && (
+                    <ScrubField label="Angle" suffix="°" value={poster.bg.angle} min={0} max={360} step={1} sensitivity={1} onChange={(v) => setBg({ angle: v })} />
+                  )}
+                </div>
+                {poster.bg.type === 'image' && (
+                  <button onClick={() => imageInput.current?.click()} className="flex items-center gap-2 text-[12px] text-muted-foreground hover:text-foreground">
+                    <ImagePlus size={14} /> Replace image
+                  </button>
+                )}
+                <input ref={imageInput} type="file" accept="image/*" className="hidden" onChange={(e) => onImage(e.target.files?.[0])} />
+              </Group>
+            </>
+          ) : (
+            <>
+              <Group
+                title="Layers"
+                aside={
+                  <button onClick={addLayer} className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80">
+                    <Plus size={13} /> Add text
+                  </button>
+                }
+              >
+                <div className="flex flex-col rounded-xl border border-border overflow-hidden divide-y divide-border">
+                  {[...poster.layers].reverse().map((l) => (
+                    <div
+                      key={l.id}
+                      className={cn('group flex items-center gap-0.5 pl-3 pr-1 h-10 transition-colors', l.id === selectedId ? 'bg-primary/10' : 'hover:bg-muted/60')}
+                    >
+                      <button onClick={() => setSelectedId(l.id)} className="flex-1 min-w-0 text-left text-[13px] truncate" style={{ fontFamily: stack(families[l.role]) }}>
+                        {l.text.replace(/\n/g, ' ') || '(empty)'}
+                      </button>
+                      <div className={cn('flex items-center transition-opacity', l.id === selectedId ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
+                        <button onClick={() => move(l.id, 1)} aria-label="Bring forward" className="p-1.5 rounded-md hover:bg-background text-muted-foreground"><ChevronUp size={13} /></button>
+                        <button onClick={() => move(l.id, -1)} aria-label="Send backward" className="p-1.5 rounded-md hover:bg-background text-muted-foreground"><ChevronDown size={13} /></button>
+                        <button onClick={() => duplicate(l.id)} aria-label="Duplicate layer" className="p-1.5 rounded-md hover:bg-background text-muted-foreground"><Copy size={12} /></button>
+                        <button onClick={() => removeLayer(l.id)} aria-label="Delete layer" className="p-1.5 rounded-md hover:bg-background text-muted-foreground hover:text-destructive"><Trash2 size={12} /></button>
+                      </div>
+                    </div>
+                  ))}
+                  {!poster.layers.length && <div className="px-3 py-3 text-[12px] text-muted-foreground">No text yet.</div>}
+                </div>
+              </Group>
+
+              {selected ? (
+                <>
+                  <Group title="Content">
+                    <textarea
+                      value={selected.text}
+                      onChange={(e) => update(selected.id, { text: e.target.value })}
+                      rows={2}
+                      aria-label="Layer text"
+                      className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <Segmented
+                      value={selected.role}
+                      onChange={(role) => update(selected.id, { role })}
+                      options={[
+                        { id: 'primary', label: primaryFont, style: { fontFamily: stack(primaryFont) } },
+                        { id: 'secondary', label: secondaryFont, style: { fontFamily: stack(secondaryFont) } },
+                      ]}
+                    />
+                  </Group>
+
+                  <Group title="Typography">
+                    <div className="grid grid-cols-2 gap-2">
+                      <ScrubField label="Size" value={selected.size} min={8} max={1200} step={1} sensitivity={1} onChange={(v) => update(selected.id, { size: v })} />
+                      {weightField(selected)}
+                      <ScrubField label="Line" value={selected.lh} min={0.6} max={2.5} step={0.01} precision={2} sensitivity={4} onChange={(v) => update(selected.id, { lh: v })} />
+                      <ScrubField label="Letter" value={selected.ls} min={-0.2} max={1} step={0.01} precision={2} sensitivity={6} onChange={(v) => update(selected.id, { ls: v })} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Segmented
+                        className="flex-1"
+                        value={selected.align}
+                        onChange={(align) => update(selected.id, { align })}
+                        options={[{ id: 'left', label: 'Left' }, { id: 'center', label: 'Center' }, { id: 'right', label: 'Right' }]}
+                      />
+                      <Chip active={selected.upper} onClick={() => update(selected.id, { upper: !selected.upper })} className="rounded-xl" title="Uppercase">AA</Chip>
+                    </div>
+                  </Group>
+
+                  <Group title="Transform">
+                    <div className="grid grid-cols-2 gap-2">
+                      <ScrubField label="Rotate" suffix="°" value={selected.rotation} min={-180} max={180} step={1} sensitivity={1} onChange={(v) => update(selected.id, { rotation: v })} />
+                      <ScrubField label="Opacity" value={selected.opacity} min={0} max={1} step={0.01} precision={2} sensitivity={3} onChange={(v) => update(selected.id, { opacity: v })} />
+                    </div>
+                  </Group>
+
+                  <Group
+                    title="Fill & outline"
+                    aside={
+                      <button onClick={() => update(selected.id, { fill: !selected.fill })} className="text-[11px] text-muted-foreground hover:text-foreground">
+                        {selected.fill ? 'Remove fill' : 'Add fill'}
+                      </button>
+                    }
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      <ColorField label="Fill" value={selected.color} onChange={(v) => update(selected.id, { color: v, fill: true })} />
+                      <ColorField label="Line" value={selected.strokeColor} onChange={(v) => update(selected.id, { strokeColor: v })} />
+                    </div>
+                    <ScrubField label="Outline" suffix="px" value={selected.stroke} min={0} max={30} step={0.5} precision={1} sensitivity={4} onChange={(v) => update(selected.id, { stroke: v })} />
+                  </Group>
+
+                  <Group title="Blend">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {BLENDS.map((b) => (
+                        <Chip key={b} active={selected.blend === b} onClick={() => update(selected.id, { blend: b })} className="capitalize rounded-lg px-1">{b}</Chip>
+                      ))}
+                    </div>
+                  </Group>
+                </>
+              ) : (
+                <p className="py-5 text-[12px] text-muted-foreground leading-relaxed">
+                  Select text on the poster or in the list to edit it. Drag to move, arrow keys nudge, Delete removes.
+                </p>
+              )}
+            </>
+          )}
+        </StudioPanel>
       </div>
     </div>
   );

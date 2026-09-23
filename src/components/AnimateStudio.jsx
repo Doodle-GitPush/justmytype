@@ -6,7 +6,7 @@ import { stack, fxStyle } from '../lib/typeStyles';
 import { recordVideo, recordGif, snapshotPng, download, videoFormat } from '../lib/motionExport';
 import { track } from '../lib/achievements';
 import ScrubField from './ScrubField';
-import { StudioHeader, Group, Chip, Swatches } from './studio/StudioUI';
+import { StudioHeader, StudioPanel, Group, Chip, Swatches, Segmented, stageClass } from './studio/StudioUI';
 import useElementSize from '../hooks/useElementSize';
 import { PALETTES, ASPECTS, ratioOf, fitBox } from '../lib/studio';
 
@@ -171,7 +171,7 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
       </StudioHeader>
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        <div ref={stageRef} className="flex-1 min-h-[52vh] lg:min-h-0 p-3 sm:p-6 flex items-center justify-center overflow-hidden bg-muted/40">
+        <div ref={stageRef} className={`${stageClass} p-3 sm:p-6 flex items-center justify-center overflow-hidden`}>
           <div
             ref={frameRef}
             className="relative overflow-hidden flex items-center justify-center rounded-xl shadow-sm transition-[background-color,color] duration-300"
@@ -200,11 +200,57 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
           </div>
         </div>
 
-        <aside className="lg:w-[340px] shrink-0 border-t lg:border-t-0 lg:border-l border-border overflow-y-auto p-4 sm:p-5 flex flex-col gap-6 bg-background">
+        <StudioPanel
+          footer={
+            <>
+              <div className="flex items-center gap-2">
+                <Segmented
+                  className="flex-1"
+                  value={format}
+                  onChange={setFormat}
+                  options={[
+                    ...(videoExt ? [{ id: 'video', label: videoExt }] : []),
+                    { id: 'gif', label: 'GIF' },
+                    { id: 'png', label: 'PNG' },
+                  ]}
+                />
+                {format !== 'png' && (
+                  <Segmented
+                    value={seconds}
+                    onChange={setSeconds}
+                    options={[3, 5, 8].map((n) => ({ id: n, label: `${n}s` }))}
+                  />
+                )}
+              </div>
+              {job ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-10 rounded-xl bg-muted overflow-hidden relative">
+                    <div className="absolute inset-y-0 left-0 bg-primary/25 transition-[width] duration-150" style={{ width: `${Math.round(job.progress * 100)}%` }} />
+                    <div className="relative h-full flex items-center justify-center gap-2 text-[13px] font-medium">
+                      <Loader2 size={14} className="animate-spin" /> {job.label} · {Math.round(job.progress * 100)}%
+                    </div>
+                  </div>
+                  <button onClick={() => abortRef.current?.abort()} aria-label="Cancel export" className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted">
+                    <X size={15} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={runExport}
+                  disabled={reduced && format !== 'png'}
+                  className="h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-primary/95 disabled:opacity-50"
+                >
+                  <Download size={15} /> Export {format === 'video' ? videoExt : format === 'gif' ? 'GIF' : 'PNG'}
+                </button>
+              )}
+              {error && <p className="text-[12px] text-destructive">{error}</p>}
+            </>
+          }
+        >
           <Group title="Effect">
             <div className="grid grid-cols-3 gap-1.5">
               {KINETIC_EFFECT_ORDER.map((key) => (
-                <Chip key={key} active={styleKey === key} onClick={() => setStyleKey(key)} className="rounded-xl px-2">
+                <Chip key={key} active={styleKey === key} onClick={() => setStyleKey(key)} className="rounded-lg px-2 py-2">
                   {KINETIC_EFFECTS[key].label}
                 </Chip>
               ))}
@@ -212,14 +258,13 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
           </Group>
 
           <Group
-            title="Settings"
+            title={`${KINETIC_EFFECTS[styleKey].label} settings`}
             aside={
               <button
                 onClick={() => { setParamsBy((all) => ({ ...all, [styleKey]: defaultParams(styleKey) })); setSpeed(1); }}
-                aria-label="Reset settings"
-                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
               >
-                <RotateCcw size={12} />
+                <RotateCcw size={11} /> Reset
               </button>
             }
           >
@@ -248,62 +293,22 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
               aria-label="Animated text"
               className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-primary/30"
             />
-            <div className="flex gap-1.5">
-              <Chip active={role === 'primary'} onClick={() => setRole('primary')} className="flex-1 truncate">{primaryFont}</Chip>
-              <Chip active={role === 'secondary'} onClick={() => setRole('secondary')} className="flex-1 truncate">{secondaryFont}</Chip>
-            </div>
+            <Segmented
+              value={role}
+              onChange={setRole}
+              options={[
+                { id: 'primary', label: primaryFont, style: { fontFamily: stack(primaryFont) } },
+                { id: 'secondary', label: secondaryFont, style: { fontFamily: stack(secondaryFont) } },
+              ]}
+            />
             <ScrubField label="Size" suffix="px" value={size} min={24} max={260} step={1} sensitivity={2} onChange={setSize} />
           </Group>
 
-          <Group title="Colour">
+          <Group title="Look">
             <Swatches palettes={PALETTES} value={paletteId} onChange={setPaletteId} />
+            <Segmented value={aspect} onChange={setAspect} options={ASPECTS} />
           </Group>
-
-          <Group title="Canvas">
-            <div className="flex flex-wrap gap-1.5">
-              {ASPECTS.map((a) => <Chip key={a.id} active={aspect === a.id} onClick={() => setAspect(a.id)}>{a.label}</Chip>)}
-            </div>
-          </Group>
-
-          <Group title="Export">
-            <div className="flex gap-1.5">
-              {videoExt && <Chip active={format === 'video'} onClick={() => setFormat('video')}>{videoExt}</Chip>}
-              <Chip active={format === 'gif'} onClick={() => setFormat('gif')}>GIF</Chip>
-              <Chip active={format === 'png'} onClick={() => setFormat('png')}>PNG still</Chip>
-            </div>
-            {format !== 'png' && (
-              <div className="flex gap-1.5 items-center">
-                <span className="text-[12px] text-muted-foreground mr-1">Length</span>
-                {[3, 5, 8].map((s) => <Chip key={s} active={seconds === s} onClick={() => setSeconds(s)}>{s}s</Chip>)}
-              </div>
-            )}
-            {job ? (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-10 rounded-xl bg-muted overflow-hidden relative">
-                  <div className="absolute inset-y-0 left-0 bg-primary/25 transition-[width] duration-150" style={{ width: `${Math.round(job.progress * 100)}%` }} />
-                  <div className="relative h-full flex items-center justify-center gap-2 text-[13px] font-medium">
-                    <Loader2 size={14} className="animate-spin" /> {job.label} · {Math.round(job.progress * 100)}%
-                  </div>
-                </div>
-                <button onClick={() => abortRef.current?.abort()} aria-label="Cancel export" className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted">
-                  <X size={15} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={runExport}
-                disabled={reduced && format !== 'png'}
-                className="h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-primary/95 disabled:opacity-50"
-              >
-                <Download size={15} /> Export {format === 'video' ? videoExt : format === 'gif' ? 'GIF' : 'PNG'}
-              </button>
-            )}
-            {error && <p className="text-[12px] text-destructive">{error}</p>}
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              Records in real time from the stage above. Variable-axis tweaks other than weight aren’t carried into exports.
-            </p>
-          </Group>
-        </aside>
+        </StudioPanel>
       </div>
     </div>
   );
