@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Layers, Zap, ShieldCheck } from 'lucide-react';
 import { gsap, useGSAP, SplitText, ScrollTrigger, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { SAMPLE } from '../../data/content';
+import { faceOf } from '../../lib/typeStyles';
 
 const NAV_LINKS = ['Product', 'Resources', 'Pricing'];
 const FEATURES = [
@@ -94,12 +95,12 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
           {/* Nav — doubles as the frame's top bar, so there's one piece of
               chrome instead of a browser bar stacked on top of a site nav. */}
           <nav className="flex items-center justify-between w-full py-4 px-6 md:px-10 bg-background/90 backdrop-blur-md border-b border-border sticky top-0 z-30">
-            <div data-nav-item data-hero className="text-[16px] font-bold text-foreground" style={{ fontFamily: pStyle.fontFamily }}>
+            <div data-nav-item data-hero className="text-[16px] font-bold text-foreground" style={faceOf(pStyle)}>
               JustMy<span className="text-primary">Type</span>
             </div>
             <div className="hidden md:flex gap-8">
               {NAV_LINKS.map((item) => (
-                <span key={item} data-nav-item data-hero className="text-[14px] text-muted-foreground" style={{ fontFamily: sStyle.fontFamily }}>
+                <span key={item} data-nav-item data-hero className="text-[14px] text-muted-foreground" style={faceOf(sStyle)}>
                   {item}
                 </span>
               ))}
@@ -108,7 +109,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
               data-nav-item
               data-hero
               className="h-9 px-4 rounded-full bg-primary text-primary-foreground text-[13px] font-semibold"
-              style={{ fontFamily: sStyle.fontFamily }}
+              style={faceOf(sStyle)}
             >
               Get Started
             </button>
@@ -120,7 +121,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
               data-hero-eyebrow
               data-hero
               className="text-[12px] font-semibold tracking-[0.15em] uppercase text-primary mb-5"
-              style={{ fontFamily: sStyle.fontFamily }}
+              style={faceOf(sStyle)}
             >
               Introducing v2.0
             </span>
@@ -148,7 +149,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
                 data-hero-cta
                 data-hero
                 className="h-11 px-6 rounded-full bg-primary text-primary-foreground text-[14px] font-semibold"
-                style={{ fontFamily: sStyle.fontFamily }}
+                style={faceOf(sStyle)}
               >
                 Start For Free
               </button>
@@ -156,7 +157,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
                 data-hero-cta
                 data-hero
                 className="h-11 px-6 rounded-full border border-border text-foreground text-[14px] font-semibold"
-                style={{ fontFamily: sStyle.fontFamily }}
+                style={faceOf(sStyle)}
               >
                 Learn More
               </button>
@@ -202,7 +203,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-semibold text-[12px] shrink-0">
                 JD
               </div>
-              <div className="text-left leading-tight" style={{ fontFamily: sStyle.fontFamily }}>
+              <div className="text-left leading-tight" style={faceOf(sStyle)}>
                 <div className="text-[13px] font-semibold text-foreground">Jamie Doyle</div>
                 <div className="text-[12px] text-muted-foreground">Design Lead, Studio</div>
               </div>
@@ -228,7 +229,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
             <button
               data-scroll-in
               className="h-12 px-8 rounded-full bg-primary text-primary-foreground text-[15px] font-semibold"
-              style={{ fontFamily: sStyle.fontFamily }}
+              style={faceOf(sStyle)}
             >
               Start 14-day free trial
             </button>
@@ -250,7 +251,7 @@ export default function HeroPreview({ pStyle, sStyle, text, revealKey }) {
                 { title: 'Product', links: ['Features', 'Pricing', 'Changelog'] },
                 { title: 'Company', links: ['About', 'Blog', 'Contact'] },
               ].map((col) => (
-                <div key={col.title} className="flex flex-col gap-3" style={{ fontFamily: sStyle.fontFamily }}>
+                <div key={col.title} className="flex flex-col gap-3" style={faceOf(sStyle)}>
                   <h4 className="text-[12px] font-bold text-foreground tracking-wider uppercase">{col.title}</h4>
                   {col.links.map((link) => (
                     <span key={link} className="text-[13px] text-muted-foreground">{link}</span>

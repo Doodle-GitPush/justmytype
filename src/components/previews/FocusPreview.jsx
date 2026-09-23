@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { SAMPLE } from '../../data/content';
-import { stack } from '../../lib/typeStyles';
+import { stack, fxStyle } from '../../lib/typeStyles';
 
 // Primary's default Size control value — the scale below is relative to
 // this, so leaving the slider untouched reproduces the old fixed clamps.
@@ -126,6 +126,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
           fontSize: sizeFor(shown.text.length, pControls.size),
           lineHeight: pControls.lh,
           letterSpacing: `${pControls.ls}em`,
+          ...fxStyle(shown.primaryFont, pControls),
         }}
       />
 
@@ -138,6 +139,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
           fontSize: `${sControls.size}px`,
           lineHeight: bodyLineHeight,
           letterSpacing: `${sControls.ls}em`,
+          ...fxStyle(shown.secondaryFont, sControls),
         }}
       >
         {SAMPLE.lead}

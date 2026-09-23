@@ -86,7 +86,7 @@ export const metaFor = (family) => metaMap().get(family);
 // Families designed around another script (Noto Sans JP, Krub, Amiri…)
 // only carry Latin as a supporting cast — and small-caps / hairline cuts
 // were never meant to set a paragraph.
-const isLatinFirst = (m) => !m.script;
+const isLatinFirst = (m) => !m.script && (!m.subsets || m.subsets.includes('latin'));
 const NOT_FOR_BODY = /\b(SC|Display|Caps|Hairline|Stencil|Decorative|Outline|Shadow|Inline)\b/;
 
 const isText = (m) => m.category === 'Sans Serif' || m.category === 'Serif' || m.category === 'Monospace';

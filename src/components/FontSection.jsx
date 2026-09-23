@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import FontControls from './FontControls';
+import { track } from '../lib/achievements';
 
 /** Rendering ~1,900 items at once locks the thread; show a window until they search. */
 const INITIAL_VISIBLE = 60;
@@ -39,6 +40,7 @@ export default function FontSection({ font, setFont, controls, setControls, lhVa
         try {
             const family = await loadCustomFont(file);
             setFont(family);
+            track('upload');
             setOpen(false);
         } catch (err) {
             setUploadError(err.message || 'Could not load that font.');

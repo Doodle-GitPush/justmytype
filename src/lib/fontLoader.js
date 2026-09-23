@@ -22,13 +22,51 @@ const axisFor = (family) => {
     : `:wght@${weights.join(';')}`;
 };
 
+/**
+ * For a variable family, request every axis as a full range instead, so
+ * the axis sliders and in-between weights render real instances rather
+ * than snapping to the nearest static cut. The CSS2 API wants registered
+ * (lowercase) axes alphabetically first, then custom (uppercase) ones.
+ */
+const variableAxisFor = (family) => {
+  const meta = FONT_METADATA.find((m) => m.family === family);
+  const axes = (meta?.axes ?? []).filter(([tag]) => tag !== 'ital');
+  if (!axes.length) return null;
+
+  const lower = axes.filter(([t]) => t === t.toLowerCase()).sort(([a], [b]) => a.localeCompare(b));
+  const upper = axes.filter(([t]) => t !== t.toLowerCase()).sort(([a], [b]) => (a < b ? -1 : 1));
+  const ordered = [...lower, ...upper];
+  const tags = ordered.map(([t]) => t).join(',');
+  const ranges = ordered.map(([, min, max]) => `${min}..${max}`).join(',');
+
+  return meta.hasItalic
+    ? `:ital,${tags}@0,${ranges};1,${ranges}`
+    : `:${tags}@${ranges}`;
+};
+
+/** `family=Name:axes@…` — the same request the app makes, for Copy CSS. */
+export const familyQuery = (family) =>
+  `family=${family.replace(/\s+/g, '+')}${variableAxisFor(family) ?? axisFor(family)}`;
+
+const cssUrl = (family, axis) =>
+  `https://fonts.googleapis.com/css2?family=${family.replace(/\s+/g, '+')}${axis}&display=swap`;
+
 export function loadFont(family) {
   if (!family || requested.has(family) || LOCAL_FAMILIES.has(family)) return;
   requested.add(family);
 
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/\s+/g, '+')}${axisFor(family)}&display=swap`;
+  const variable = variableAxisFor(family);
+  link.href = cssUrl(family, variable ?? axisFor(family));
+  // A few families publish axis ranges the API won't serve for every
+  // style — fall back to the static weights rather than no font at all.
+  if (variable) {
+    link.onerror = () => {
+      link.onerror = null;
+      link.href = cssUrl(family, axisFor(family));
+    };
+  }
   document.head.appendChild(link);
 }
 

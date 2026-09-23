@@ -1,6 +1,7 @@
 import { Heart, MessageCircle, Bookmark } from 'lucide-react';
 import { SAMPLE } from '../../data/content';
 import { useTypeReveal, useSoftReveal } from '../../hooks/useTypeReveal';
+import { faceOf } from '../../lib/typeStyles';
 
 export default function ArticlePreview({ pStyle, sStyle, text, revealKey }) {
   // Deliberately not keyed on `text`: re-splitting on every keystroke would
@@ -19,7 +20,7 @@ export default function ArticlePreview({ pStyle, sStyle, text, revealKey }) {
   // and line-height are overridden here, by the section's own Tailwind
   // classes rather than pStyle's, so they read as a hierarchy of headline
   // sizes instead of all matching the H1 exactly.
-  const subheadStyle = { fontFamily: pStyle.fontFamily, fontWeight: pStyle.fontWeight, letterSpacing: pStyle.letterSpacing };
+  const subheadStyle = { ...faceOf(pStyle), fontWeight: pStyle.fontWeight, letterSpacing: pStyle.letterSpacing };
 
   return (
     <div ref={bodyRef} className="max-w-[680px] mx-auto w-full px-1 lg:px-0 py-2 lg:py-8">

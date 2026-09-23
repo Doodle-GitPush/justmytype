@@ -8,10 +8,11 @@ import AnimateStudio from './components/AnimateStudio';
 import Presence from './components/motion/Presence';
 import Preloader from './components/Preloader';
 import { TABS } from './data/constants';
-import { FONTS, FONT_METADATA, fetchAllFonts } from './data/fonts';
+import { FONTS, fetchAllFonts } from './data/fonts';
 import { SAMPLE } from './data/content';
-import { loadFont, whenFontReady } from './lib/fontLoader';
-import { fallbackFor } from './lib/typeStyles';
+import { loadFont, whenFontReady, familyQuery } from './lib/fontLoader';
+import { fallbackFor, fxStyle } from './lib/typeStyles';
+import { track } from './lib/achievements';
 import { DUR } from './lib/gsap';
 import { buildShareUrl, readShareState } from './lib/shareLink';
 import { generatePair, headingWeight, bodyWeight } from './lib/pairing';
@@ -167,6 +168,7 @@ export default function App() {
     const root = document.documentElement;
     root.classList.toggle('dark', isDark);
     root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    if (isDark) track('dark');
   }, [isDark]);
 
   useEffect(() => {
@@ -204,6 +206,7 @@ export default function App() {
     }
     setPairReason(reason);
     setRevealKey(k => k + 1);
+    track('generate', { fonts: [heading, body], mood });
   }, [primaryLocked, secondaryLocked, primaryFont, secondaryFont, filteredFonts, mood]);
 
   // ── Keyboard shortcuts ──────────────────────────────
@@ -245,35 +248,31 @@ export default function App() {
 
   // ── Copy CSS ────────────────────────────────────────
   const handleCopyCss = async () => {
-    const weightsFor = (family, fallback) => {
-      const w = FONT_METADATA.find(m => m.family === family)?.weights;
-      return w?.length ? w.join(';') : fallback;
+    const rule = (selector, family, c, lh) => {
+      const fx = fxStyle(family, c);
+      return [
+        `${selector} {`,
+        `  font-family: '${family}', ${fallbackFor(family)};`,
+        `  font-size: ${c.size}px;`,
+        `  font-weight: ${c.weight};`,
+        `  line-height: ${lh};`,
+        `  letter-spacing: ${c.ls}em;`,
+        fx.fontVariationSettings && `  font-variation-settings: ${fx.fontVariationSettings};`,
+        fx.fontFeatureSettings && `  font-feature-settings: ${fx.fontFeatureSettings};`,
+        '}',
+      ].filter(Boolean).join('\n');
     };
 
-    const encP = primaryFont.replace(/ /g, '+');
-    const encS = secondaryFont.replace(/ /g, '+');
-
     const css = `/* JustMyType — Generated CSS */
-@import url('https://fonts.googleapis.com/css2?family=${encP}:wght@${weightsFor(primaryFont, primaryControls.weight)}&family=${encS}:wght@${weightsFor(secondaryFont, secondaryControls.weight)}&display=swap');
+@import url('https://fonts.googleapis.com/css2?${familyQuery(primaryFont)}&${familyQuery(secondaryFont)}&display=swap');
 
-.heading {
-  font-family: '${primaryFont}', ${fallbackFor(primaryFont)};
-  font-size: ${primaryControls.size}px;
-  font-weight: ${primaryControls.weight};
-  line-height: ${primaryControls.lh};
-  letter-spacing: ${primaryControls.ls}em;
-}
+${rule('.heading', primaryFont, primaryControls, primaryControls.lh)}
 
-.body {
-  font-family: '${secondaryFont}', ${fallbackFor(secondaryFont)};
-  font-size: ${secondaryControls.size}px;
-  font-weight: ${secondaryControls.weight};
-  line-height: ${bodyLineHeight};
-  letter-spacing: ${secondaryControls.ls}em;
-}`;
+${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
 
     try {
       await navigator.clipboard.writeText(css);
+      track('css');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -292,6 +291,7 @@ export default function App() {
     });
     try {
       await navigator.clipboard.writeText(url);
+      track('share');
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {

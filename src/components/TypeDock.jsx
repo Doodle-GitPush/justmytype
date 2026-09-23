@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Sparkles, Wand2 } from 'lucide-react';
 import { MOODS } from '../lib/pairing';
+import { track } from '../lib/achievements';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
 import { stack } from '../lib/typeStyles';
@@ -106,7 +107,7 @@ function FontPill({ font, isLocked, onToggleLock, controls, setControls, lhValue
                         </span>
                     </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[248px] p-3" align="center" side="top" sideOffset={10}>
+                <PopoverContent className="w-[272px] p-3 max-h-[min(70vh,560px)] overflow-y-auto" align="center" side="top" sideOffset={10}>
                     <div
                         className="text-[13px] font-semibold text-foreground mb-3 truncate"
                         style={{ fontFamily: stack(font) }}
@@ -186,6 +187,7 @@ export default function TypeDock({
         try {
             const family = await loadCustomFont(file);
             setPrimaryFont(family);
+            track('upload');
             onFontAdded?.(family);
         } catch (err) {
             setFontUploadError(err.message || 'Could not load that font.');
