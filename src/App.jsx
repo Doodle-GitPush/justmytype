@@ -30,6 +30,8 @@ const SHORTCUTS = [
   { keys: ['3'], label: 'Hero preview' },
   { keys: ['4'], label: 'Specimen preview' },
   { keys: ['5'], label: 'Compare preview' },
+  { keys: ['6'], label: 'Realistic layouts' },
+  { keys: ['7'], label: 'Glyph explorer' },
   { keys: ['?'], label: 'Show this shortcuts panel' },
   { keys: ['Esc'], label: 'Close any panel' },
 ];

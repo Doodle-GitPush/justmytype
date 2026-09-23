@@ -7,6 +7,8 @@ import ArticlePreview from './previews/ArticlePreview';
 import HeroPreview from './previews/HeroPreview';
 import SpecimenPreview from './previews/SpecimenPreview';
 import ComparePreview from './previews/ComparePreview';
+import LayoutsPreview from './previews/LayoutsPreview';
+import GlyphsPreview from './previews/GlyphsPreview';
 
 const VIEWS = {
   focus: FocusPreview,
@@ -14,6 +16,8 @@ const VIEWS = {
   hero: HeroPreview,
   specimen: SpecimenPreview,
   compare: ComparePreview,
+  layouts: LayoutsPreview,
+  glyphs: GlyphsPreview,
 };
 
 export default function PreviewArea({
