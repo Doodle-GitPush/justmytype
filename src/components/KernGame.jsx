@@ -6,6 +6,7 @@ import { stack } from '../lib/typeStyles';
 import { track } from '../lib/achievements';
 import { gsap, prefersReducedMotion } from '@/lib/gsap';
 import { StudioHeader } from './studio/StudioUI';
+import useElementSize from '../hooks/useElementSize';
 import { cn } from '@/lib/utils';
 
 /**
@@ -45,6 +46,22 @@ const measureLetters = (el) => {
   });
 };
 
+// How a score reads, and the colour it wears.
+const verdict = (score) =>
+  score >= 97 ? { label: 'Perfect', tone: 'text-emerald-600', bar: 'bg-emerald-500' }
+    : score >= 88 ? { label: 'Great eye', tone: 'text-emerald-600', bar: 'bg-emerald-500' }
+    : score >= 70 ? { label: 'Good', tone: 'text-amber-600', bar: 'bg-amber-500' }
+    : { label: 'Keep practising', tone: 'text-rose-600', bar: 'bg-rose-500' };
+
+// Per-letter error colour after the reveal (error in em).
+const errorTone = (em) => (em < 0.012 ? 'text-emerald-600' : em < 0.035 ? 'text-amber-600' : 'text-rose-600');
+
+function Kbd({ children }) {
+  return (
+    <kbd className="inline-flex items-center justify-center min-w-[22px] h-[20px] px-1.5 rounded-md border border-border bg-card text-[11px] font-mono text-foreground">{children}</kbd>
+  );
+}
+
 const scoreFor = (offsets, size) => {
   const inner = offsets.slice(1, -1);
   if (!inner.length) return 100;
@@ -75,13 +92,20 @@ export default function KernGame({ onExit }) {
   const letterEls = useRef([]);
   const drag = useRef(null);
 
-  const size = useMemo(() => Math.min(180, Math.max(64, 900 / Math.max(4, word.length))), [word]);
+  // The word is sized to the card it sits on, so long words fit on a phone.
+  const cardRef = useRef(null);
+  const card = useElementSize(cardRef);
+  const cardW = Math.round(card.w / 20) * 20;
+  const size = useMemo(
+    () => Math.min(170, Math.max(34, ((cardW || 900) * 0.84) / (Math.max(4, word.length) * 0.64))),
+    [word, cardW]
+  );
   const letters = useMemo(() => Array.from(word), [word]);
   const done = game.round >= game.words.length;
 
   // Load the font, then measure the real kerned layout from a single text node.
   useEffect(() => {
-    if (done) return;
+    if (done || !cardW) return;
     let cancelled = false;
     whenFontReady(font, 4000).then(() => {
       if (cancelled) return;
@@ -98,7 +122,7 @@ export default function KernGame({ onExit }) {
       });
     });
     return () => { cancelled = true; };
-  }, [font, word, size, done]);
+  }, [font, word, size, done, cardW]);
 
   const nudge = (i, dx) => {
     if (revealed !== null || i <= 0 || i >= letters.length - 1) return;
@@ -176,90 +200,134 @@ export default function KernGame({ onExit }) {
   return (
     <div className="fixed inset-0 z-[90] bg-background text-foreground flex flex-col">
       <StudioHeader title="Kern Game" subtitle={done ? 'Results' : `Word ${game.round + 1} of ${game.words.length}`} onExit={onExit}>
-        <span className="text-[13px] tabular-nums text-muted-foreground hidden sm:inline">Avg {avg}</span>
+        {game.scores.length > 0 && <span className="text-[12px] tabular-nums text-muted-foreground px-2">Avg <b className="text-foreground">{avg}</b></span>}
       </StudioHeader>
 
+      {/* Progress — one segment per word, tinted by how it went. */}
+      <div className="flex gap-1.5 px-4 sm:px-6 pt-4 max-w-[720px] w-full mx-auto">
+        {game.words.map((w, i) => (
+          <div key={w} className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', i < game.scores.length ? verdict(game.scores[i]).bar : i === game.round ? 'bg-primary/50' : '')}
+              style={{ width: i <= game.scores.length || i === game.round ? '100%' : '0%' }}
+            />
+          </div>
+        ))}
+      </div>
+
       {done ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6 text-center">
-          <Trophy size={40} className="text-primary" />
-          <div>
-            <div className="text-[64px] font-bold leading-none tabular-nums">{avg}</div>
-            <div className="text-muted-foreground mt-2">average score across {game.scores.length} words</div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="min-h-full flex flex-col items-center justify-center gap-6 p-6 text-center max-w-[640px] mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-amber-400/15 text-amber-500 flex items-center justify-center"><Trophy size={30} /></div>
+            <div>
+              <div className="text-[72px] font-bold leading-none tabular-nums">{avg}</div>
+              <div className={cn('mt-2 text-[15px] font-semibold', verdict(avg).tone)}>{verdict(avg).label}</div>
+              <div className="text-muted-foreground text-[13px] mt-1">average across {game.scores.length} words</div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
+              {game.words.map((w, i) => (
+                <div key={w} className="rounded-2xl border border-border bg-card p-3 flex flex-col items-center gap-1">
+                  <span className="text-[20px] leading-tight truncate max-w-full" style={{ fontFamily: stack(game.fonts[i % game.fonts.length]) }}>{w}</span>
+                  <span className={cn('text-[13px] font-semibold tabular-nums', verdict(game.scores[i]).tone)}>{game.scores[i]}</span>
+                  <span className="text-[10px] text-muted-foreground truncate max-w-full">{game.fonts[i % game.fonts.length]}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-muted-foreground text-[14px] max-w-[420px] leading-relaxed">
+              {avg >= 95 ? 'Optical genius — type designers would hire you.' : avg >= 85 ? 'A keen eye. Your spacing is nearly invisible.' : avg >= 70 ? 'Solid. Watch the round letters — they need to sit closer than the straight ones.' : 'Try squinting: judge the space between letters as areas, not distances.'}
+            </p>
+            <button onClick={restart} className="h-11 px-6 rounded-full bg-primary text-primary-foreground font-semibold flex items-center gap-2">
+              <RotateCcw size={16} /> Play again
+            </button>
           </div>
-          <div className="flex flex-wrap justify-center gap-2 max-w-[520px]">
-            {game.words.map((w, i) => (
-              <span key={w} className="text-[13px] px-3 py-1.5 rounded-full border border-border" style={{ fontFamily: stack(game.fonts[i % game.fonts.length]) }}>
-                {w} · <b className="tabular-nums">{game.scores[i]}</b>
-              </span>
-            ))}
-          </div>
-          <p className="text-muted-foreground text-[14px] max-w-[420px]">
-            {avg >= 95 ? 'Optical genius — type designers would hire you.' : avg >= 85 ? 'A keen eye. Your spacing is nearly invisible.' : avg >= 70 ? 'Solid. Watch the round letters — they need to sit closer.' : 'Keep going — try squinting to judge the space between letters as areas, not distances.'}
-          </p>
-          <button onClick={restart} className="h-11 px-6 rounded-full bg-primary text-primary-foreground font-semibold flex items-center gap-2">
-            <RotateCcw size={16} /> Play again
-          </button>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4 select-none overflow-hidden">
-          <p className="text-[14px] text-muted-foreground text-center max-w-[520px]">
-            Drag the letters until the spacing looks even. The first and last letters are fixed.
-            <span className="hidden sm:inline"> Tab picks a letter, ←/→ nudge (Shift for 10px), Enter to check.</span>
-          </p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4 sm:p-6 select-none overflow-hidden">
+          <div ref={cardRef} className="w-full max-w-[1000px] rounded-3xl border border-border bg-card shadow-sm px-4 py-10 sm:py-14 flex flex-col items-center gap-6 relative overflow-hidden">
+            <div className="absolute top-4 left-5 text-[12px] text-muted-foreground" style={{ fontFamily: stack(font) }}>{font}</div>
+            {revealed !== null && (
+              <div className={cn('absolute top-4 right-5 text-[12px] font-semibold', verdict(revealed).tone)}>{verdict(revealed).label}</div>
+            )}
 
-          <div ref={stageRef} className="relative" style={{ width: totalW || undefined, height: size * 1.3 }}>
-            {/* The reference: one untouched text node, measured for the real kerned positions. */}
-            <div ref={refEl} aria-hidden="true" className="absolute left-0 top-0 whitespace-pre invisible" style={{ fontFamily: stack(font), fontSize: size, lineHeight: 1.3, fontKerning: 'normal' }}>
-              {word}
-            </div>
+            <div ref={stageRef} className="relative mt-4" style={{ width: totalW || undefined, height: size * 1.3 }}>
+              {/* The reference: one untouched text node, measured for the real kerned positions. */}
+              <div ref={refEl} aria-hidden="true" className="absolute left-0 top-0 whitespace-pre invisible" style={{ fontFamily: stack(font), fontSize: size, lineHeight: 1.3, fontKerning: 'normal' }}>
+                {word}
+              </div>
 
-            {ready && revealed !== null && layout.map((l, i) => (
-              <span
-                key={`ghost-${i}`}
-                aria-hidden="true"
-                className="absolute top-0 text-primary/35"
-                style={{ left: l.x, fontFamily: stack(font), fontSize: size, lineHeight: 1.3 }}
-              >
-                {letters[i]}
-              </span>
-            ))}
+              {!ready && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-10 w-48 rounded-xl bg-muted animate-pulse" />
+                </div>
+              )}
 
-            {ready && layout.map((l, i) => {
-              const fixed = i === 0 || i === letters.length - 1;
-              return (
+              {ready && revealed !== null && layout.map((l, i) => (
                 <span
-                  key={`${word}-${i}`}
-                  ref={(el) => { letterEls.current[i] = el; }}
-                  onPointerDown={(e) => onPointerDown(e, i)}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={onPointerUp}
-                  className={cn(
-                    'absolute top-0 touch-none',
-                    fixed ? 'text-foreground/60' : 'cursor-ew-resize text-foreground',
-                    !fixed && active === i && revealed === null && 'underline decoration-primary decoration-4 underline-offset-8'
-                  )}
-                  style={{ left: l.x, transform: `translateX(${offsets[i] ?? 0}px)`, fontFamily: stack(font), fontSize: size, lineHeight: 1.3 }}
+                  key={`ghost-${i}`}
+                  aria-hidden="true"
+                  className="absolute top-0 text-primary/30"
+                  style={{ left: l.x, fontFamily: stack(font), fontSize: size, lineHeight: 1.3 }}
                 >
                   {letters[i]}
                 </span>
-              );
-            })}
+              ))}
+
+              {ready && layout.map((l, i) => {
+                const fixed = i === 0 || i === letters.length - 1;
+                const isActive = !fixed && active === i && revealed === null;
+                return (
+                  <span
+                    key={`${word}-${i}`}
+                    ref={(el) => { letterEls.current[i] = el; }}
+                    onPointerDown={(e) => onPointerDown(e, i)}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    className={cn(
+                      'absolute top-0 touch-none transition-colors',
+                      revealed !== null
+                        ? (fixed ? 'text-foreground/40' : errorTone(Math.abs(offsets[i] ?? 0) / size))
+                        : fixed ? 'text-foreground/40' : 'cursor-ew-resize text-foreground hover:text-primary',
+                      isActive && 'text-primary'
+                    )}
+                    style={{ left: l.x, transform: `translateX(${offsets[i] ?? 0}px)`, fontFamily: stack(font), fontSize: size, lineHeight: 1.3 }}
+                  >
+                    {letters[i]}
+                    {/* A grab handle under each movable letter; the active one is filled. */}
+                    {!fixed && revealed === null && (
+                      <span className={cn('absolute left-1/2 -translate-x-1/2 -bottom-3 w-2 h-2 rounded-full transition-colors', isActive ? 'bg-primary' : 'bg-border')} />
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+
+            {revealed !== null && (
+              <div className="flex items-baseline gap-2">
+                <span className="text-[48px] font-bold tabular-nums leading-none">{revealed}</span>
+                <span className="text-[13px] text-muted-foreground">/ 100</span>
+              </div>
+            )}
           </div>
 
-          <div className="text-[13px] text-muted-foreground" style={{ fontFamily: stack(font) }}>Set in {font}</div>
-
           {revealed === null ? (
-            <button onClick={submit} disabled={!ready} className="h-11 px-6 rounded-full bg-primary text-primary-foreground font-semibold flex items-center gap-2 disabled:opacity-50">
-              <Eye size={16} /> Check spacing
-            </button>
+            <>
+              <button onClick={submit} disabled={!ready} className="h-11 px-6 rounded-full bg-primary text-primary-foreground font-semibold flex items-center gap-2 disabled:opacity-50">
+                <Eye size={16} /> Check spacing
+              </button>
+              <p className="text-[13px] text-muted-foreground text-center max-w-[560px] leading-relaxed">
+                Drag the letters until the gaps look even — the first and last stay put.
+                <span className="hidden sm:inline"> <Kbd>Tab</Kbd> picks a letter, <Kbd>←</Kbd><Kbd>→</Kbd> nudge (<Kbd>Shift</Kbd> for 10px), <Kbd>Enter</Kbd> checks.</span>
+              </p>
+            </>
           ) : (
-            <div className="flex flex-col items-center gap-3">
-              <div className="text-[44px] font-bold tabular-nums leading-none">{revealed}</div>
-              <div className="text-[13px] text-muted-foreground">Faint letters show the font’s own spacing.</div>
+            <>
               <button onClick={next} className="h-11 px-6 rounded-full bg-primary text-primary-foreground font-semibold flex items-center gap-2">
                 {game.round + 1 < game.words.length ? 'Next word' : 'See results'} <ArrowRight size={16} />
               </button>
-            </div>
+              <p className="text-[13px] text-muted-foreground text-center">
+                Faint letters are the font’s own spacing. <span className="text-emerald-600">Green</span> letters were close, <span className="text-rose-600">red</span> ones were off.
+              </p>
+            </>
           )}
         </div>
       )}

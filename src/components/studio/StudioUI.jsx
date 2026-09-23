@@ -54,7 +54,9 @@ export function Group({ title, children, aside }) {
 }
 
 /** iOS-style segmented control — one choice out of a few. */
-export function Segmented({ options, value, onChange, className }) {
+// `fit` sizes each option to its label (for a scrolling strip) instead of
+// sharing the width equally and truncating.
+export function Segmented({ options, value, onChange, className, fit = false }) {
   return (
     <div role="tablist" className={cn('flex p-1 bg-muted rounded-xl gap-1', className)}>
       {options.map((o) => (
@@ -65,7 +67,8 @@ export function Segmented({ options, value, onChange, className }) {
           aria-selected={value === o.id}
           onClick={() => onChange(o.id)}
           className={cn(
-            'flex-1 min-w-0 truncate px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all',
+            fit ? 'shrink-0 whitespace-nowrap px-3' : 'flex-1 min-w-0 truncate px-2.5',
+            'py-1.5 rounded-lg text-[12px] font-medium transition-all',
             value === o.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
           )}
           style={o.style}
