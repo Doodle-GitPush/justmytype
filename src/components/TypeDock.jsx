@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Sparkles, Wand2 } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Wand2 } from 'lucide-react';
+import StudioLauncher from './StudioLauncher';
 import { MOODS } from '../lib/pairing';
 import { track } from '../lib/achievements';
 import FontSection from './FontSection';
@@ -160,7 +161,7 @@ export default function TypeDock({
     isTuneOpen, setIsTuneOpen,
     generateRandomPair,
     onFontAdded,
-    onAnimate,
+    onOpenStudio,
     mood, setMood,
     pairReason,
 }) {
@@ -653,18 +654,10 @@ export default function TypeDock({
                 </div>
             </div>
 
-            {/* Outside the bar rather than one more icon inside it — this
-                opens a whole different mode, not another control on the
-                same surface. */}
-            <button
-                onClick={onAnimate}
-                aria-label="Animate this type"
-                title="Animate this type"
-                className="pointer-events-auto shrink-0 flex items-center gap-2 h-[52px] px-4 rounded-full bg-background/90 backdrop-blur-xl border border-border shadow-xl text-primary transition-all hover:bg-card hover:scale-105 active:scale-95"
-            >
-                <Sparkles size={16} />
-                <span className="text-[13px] font-semibold hidden sm:inline">Animate</span>
-            </button>
+            {/* Outside the bar rather than one more icon inside it — these
+                open whole different modes, not another control on the same
+                surface. */}
+            <StudioLauncher onOpen={onOpenStudio} />
             </div>
         </div>
     );

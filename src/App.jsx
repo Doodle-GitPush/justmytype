@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sun, Check, Copy, Keyboard, Info, Link2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { Moon, Sun, Check, Copy, Keyboard, Info, Link2, Trophy } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import RightTabs from './components/RightTabs';
 import FontInfoPanel from './components/FontInfoPanel';
-import AnimateStudio from './components/AnimateStudio';
+import AchievementsPanel from './components/AchievementsPanel';
 import Presence from './components/motion/Presence';
 import Preloader from './components/Preloader';
 import { TABS } from './data/constants';
@@ -12,13 +12,21 @@ import { FONTS, fetchAllFonts } from './data/fonts';
 import { SAMPLE } from './data/content';
 import { loadFont, whenFontReady, familyQuery } from './lib/fontLoader';
 import { fallbackFor, fxStyle } from './lib/typeStyles';
-import { track } from './lib/achievements';
+import { track, onUnlock } from './lib/achievements';
 import { DUR } from './lib/gsap';
 import { buildShareUrl, readShareState } from './lib/shareLink';
 import { generatePair, headingWeight, bodyWeight } from './lib/pairing';
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
+
+// Studios and games only load when opened — they're most of the code and
+// none of the first paint.
+const AnimateStudio = lazy(() => import('./components/AnimateStudio'));
+const PosterStudio = lazy(() => import('./components/PosterStudio'));
+const LabStudio = lazy(() => import('./components/LabStudio'));
+const KernGame = lazy(() => import('./components/KernGame'));
+const MatchGame = lazy(() => import('./components/MatchGame'));
 
 const SHORTCUTS = [
   { keys: ['Space'], label: 'Generate new pair (next candidate in Compare)' },
@@ -92,9 +100,40 @@ export default function App() {
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
   );
   const [activeTab, setActiveTab] = useState(() => shared?.activeTab ?? 'focus');
-  // A full takeover, not an overlay toggle — entering replaces the whole
-  // editor shell with AnimateStudio; exiting is its own explicit control.
-  const [animateMode, setAnimateMode] = useState(false);
+  // Studios and games are full takeovers, not overlays — entering one
+  // replaces the whole editor shell; Back is its own explicit control.
+  // null | 'animate' | 'poster' | 'lab' | 'kern' | 'match'
+  const [studio, setStudio] = useState(null);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [unlockToast, setUnlockToast] = useState(null);
+
+  // Celebrate each achievement the moment it unlocks.
+  useEffect(() => onUnlock((a) => {
+    setUnlockToast(a);
+    setTimeout(() => setUnlockToast((t) => (t?.id === a.id ? null : t)), 4200);
+    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      import('canvas-confetti').then(({ default: confetti }) =>
+        confetti({ particleCount: 90, spread: 70, origin: { y: 0.15 }, zIndex: 200 })
+      );
+    }
+  }), []);
+
+  const openStudio = (id) => {
+    if (id === 'achievements') setShowAchievements(true);
+    else setStudio(id);
+  };
+
+  // Type Match's "Use pair" — straight into the editor with sensible weights.
+  const applyPair = (heading, body) => {
+    loadFont(heading);
+    loadFont(body);
+    setPrimaryFont(heading);
+    setSecondaryFont(body);
+    setPrimaryControls(c => ({ ...c, weight: headingWeight(heading) }));
+    setSecondaryControls(c => ({ ...c, weight: bodyWeight(body) }));
+    setStudio(null);
+    setRevealKey(k => k + 1);
+  };
   const [bodyLineHeight, setBodyLineHeight] = useState(() => shared?.bodyLineHeight ?? 1.7);
 
   const [primaryFont, setPrimaryFont] = useState(() => shared?.primaryFont ?? 'Plus Jakarta Sans');
@@ -215,6 +254,8 @@ export default function App() {
   useEffect(() => {
     const handler = (e) => {
       if (!bootedRef.current) return;
+      // Studios own the keyboard while they're open.
+      if (studio) return;
       const tag = e.target.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -246,7 +287,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [generateRandomPair, activeTab]);
+  }, [generateRandomPair, activeTab, studio]);
 
   // ── Copy CSS ────────────────────────────────────────
   const handleCopyCss = async () => {
@@ -306,21 +347,62 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
     <>
       {!booted && <Preloader ready={appReady} onFinish={() => setBooted(true)} />}
 
-      {/* Animate mode replaces the whole editor shell below rather than
+      {/* A studio replaces the whole editor shell below rather than
           overlaying it — the dock, preview tabs, and toolbar all disappear
           while it's up, and Back is the only way out. */}
-      {booted && animateMode && (
-        <AnimateStudio
-          primaryFont={primaryFont}
-          pControls={primaryControls}
-          secondaryFont={secondaryFont}
-          sControls={secondaryControls}
-          text={sampleText || SAMPLE.title}
-          onExit={() => setAnimateMode(false)}
-        />
-      )}
+      <Suspense fallback={<div className="fixed inset-0 z-[90] bg-background" />}>
+        {booted && studio === 'animate' && (
+          <AnimateStudio
+            primaryFont={primaryFont}
+            pControls={primaryControls}
+            secondaryFont={secondaryFont}
+            sControls={secondaryControls}
+            text={sampleText || SAMPLE.title}
+            onExit={() => setStudio(null)}
+          />
+        )}
+        {booted && studio === 'poster' && (
+          <PosterStudio
+            primaryFont={primaryFont}
+            pControls={primaryControls}
+            secondaryFont={secondaryFont}
+            sControls={secondaryControls}
+            text={sampleText || SAMPLE.title}
+            onExit={() => setStudio(null)}
+          />
+        )}
+        {booted && studio === 'lab' && (
+          <LabStudio
+            primaryFont={primaryFont}
+            pControls={primaryControls}
+            secondaryFont={secondaryFont}
+            sControls={secondaryControls}
+            text={sampleText || SAMPLE.title}
+            onExit={() => setStudio(null)}
+          />
+        )}
+        {booted && studio === 'kern' && <KernGame onExit={() => setStudio(null)} />}
+        {booted && studio === 'match' && <MatchGame onExit={() => setStudio(null)} onApply={applyPair} />}
+      </Suspense>
 
-      {booted && !animateMode && (
+      <AchievementsPanel open={showAchievements} onOpenChange={setShowAchievements} />
+
+      <Presence
+        show={!!unlockToast}
+        from={{ opacity: 0, y: -16, scale: 0.96 }} to={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10 }}
+        duration={DUR.fast}
+        role="status"
+        className="fixed top-5 left-1/2 -translate-x-1/2 z-[120] flex items-center gap-3 bg-foreground text-background pl-3 pr-5 py-2.5 rounded-2xl shadow-2xl cursor-pointer"
+        onClick={() => { setUnlockToast(null); setShowAchievements(true); }}
+      >
+        <span className="w-9 h-9 rounded-xl bg-amber-400 text-black flex items-center justify-center"><Trophy size={17} /></span>
+        <span>
+          <span className="block text-[10px] uppercase tracking-widest opacity-70">Achievement unlocked</span>
+          <span className="block text-[14px] font-semibold">{unlockToast?.title}</span>
+        </span>
+      </Presence>
+
+      {booted && !studio && (
       <div className="w-screen min-h-[100dvh] lg:h-screen flex flex-col lg:flex-row bg-background overflow-y-auto overflow-x-hidden lg:overflow-hidden relative font-sans text-foreground">
 
         <FontInfoPanel font={infoFont} onClose={() => setInfoFont(null)} />
@@ -512,7 +594,7 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
           mood={mood} setMood={setMood}
           pairReason={pairReason}
           onFontAdded={handleFontAdded}
-          onAnimate={() => setAnimateMode(true)}
+          onOpenStudio={openStudio}
         />
 
         <PreviewArea

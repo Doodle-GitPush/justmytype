@@ -1,60 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Pause, Play, Download, Loader2, X, RotateCcw } from 'lucide-react';
+import { Pause, Play, Download, Loader2, X, RotateCcw } from 'lucide-react';
 import { gsap, useGSAP, SplitText, prefersReducedMotion } from '@/lib/gsap';
 import { KINETIC_EFFECTS, KINETIC_EFFECT_ORDER, defaultParams } from '../lib/kineticEffects';
 import { stack, fxStyle } from '../lib/typeStyles';
 import { recordVideo, recordGif, snapshotPng, download, videoFormat } from '../lib/motionExport';
 import { track } from '../lib/achievements';
 import ScrubField from './ScrubField';
-import { cn } from '@/lib/utils';
-
-const PALETTES = [
-  { id: 'theme', label: 'Theme', bg: 'hsl(var(--background))', fg: 'hsl(var(--foreground))' },
-  { id: 'paper', label: 'Paper', bg: '#f4efe6', fg: '#1b1a17' },
-  { id: 'night', label: 'Night', bg: '#0b0b10', fg: '#f5f5f7' },
-  { id: 'accent', label: 'Accent', bg: '#ff4d00', fg: '#fff7f0' },
-  { id: 'acid', label: 'Acid', bg: '#d7ff3a', fg: '#111111' },
-  { id: 'ocean', label: 'Ocean', bg: '#0b3d91', fg: '#e3f0ff' },
-  { id: 'blush', label: 'Blush', bg: '#ffd9e0', fg: '#7a1030' },
-];
-
-const ASPECTS = [
-  { id: 'fit', label: 'Fit' },
-  { id: '1/1', label: '1:1' },
-  { id: '4/5', label: '4:5' },
-  { id: '9/16', label: '9:16' },
-  { id: '16/9', label: '16:9' },
-];
-
-function Group({ title, children, aside }) {
-  return (
-    <section className="flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{title}</h3>
-        {aside}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Chip({ active, onClick, children, className, ...props }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        'px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors',
-        active ? 'bg-primary text-primary-foreground border-primary' : 'text-foreground border-border hover:bg-muted',
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+import { StudioHeader, Group, Chip, Swatches } from './studio/StudioUI';
+import useElementSize from '../hooks/useElementSize';
+import { PALETTES, ASPECTS, ratioOf, fitBox } from '../lib/studio';
 
 /**
  * Animate — a full-screen kinetic-typography studio. Pick an effect, tune
@@ -91,23 +45,11 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
   const reduced = prefersReducedMotion();
 
   // The frame takes the chosen aspect ratio, as large as the stage allows.
-  const [box, setBox] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      setBox({ w: width, h: height });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const box = useElementSize(stageRef);
   const frameSize = (() => {
     if (aspect === 'fit' || !box.w) return { width: '100%', height: '100%' };
-    const [aw, ah] = aspect.split('/').map(Number);
-    const ratio = aw / ah;
-    const w = Math.min(box.w, box.h * ratio);
-    return { width: `${Math.floor(w)}px`, height: `${Math.floor(w / ratio)}px` };
+    const { w, h } = fitBox(box, ratioOf(aspect));
+    return { width: `${w}px`, height: `${h}px` };
   })();
 
   // Holds whatever the currently-live effect created — not state, since
@@ -218,18 +160,7 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
 
   return (
     <div className="fixed inset-0 z-[90] bg-background text-foreground flex flex-col">
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-border shrink-0">
-        <button
-          onClick={onExit}
-          className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:bg-card text-foreground"
-        >
-          <ArrowLeft size={16} />
-          <span className="hidden sm:inline">Back to editor</span>
-        </button>
-        <div className="flex items-center gap-2 text-[13px] text-muted-foreground truncate">
-          <span className="hidden sm:inline">Animate</span>
-          <span className="text-foreground font-medium truncate max-w-[40vw]" style={{ fontFamily: stack(font) }}>{font}</span>
-        </div>
+      <StudioHeader title="Animate" subtitle={font} subtitleStyle={{ fontFamily: stack(font) }} onExit={onExit}>
         <button
           onClick={() => setPlaying((v) => !v)}
           aria-label={playing ? 'Pause' : 'Play'}
@@ -237,7 +168,7 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
         >
           {playing ? <Pause size={16} /> : <Play size={16} />}
         </button>
-      </div>
+      </StudioHeader>
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <div ref={stageRef} className="flex-1 min-h-[52vh] lg:min-h-0 p-3 sm:p-6 flex items-center justify-center overflow-hidden bg-muted/40">
@@ -325,21 +256,7 @@ export default function AnimateStudio({ primaryFont, pControls, secondaryFont, s
           </Group>
 
           <Group title="Colour">
-            <div className="flex flex-wrap gap-2">
-              {PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setPaletteId(p.id)}
-                  aria-pressed={paletteId === p.id}
-                  aria-label={p.label}
-                  title={p.label}
-                  className={cn('w-9 h-9 rounded-full border-2 flex items-center justify-center text-[13px] font-bold transition-transform', paletteId === p.id ? 'border-primary scale-110' : 'border-border')}
-                  style={{ background: p.bg, color: p.fg }}
-                >
-                  Aa
-                </button>
-              ))}
-            </div>
+            <Swatches palettes={PALETTES} value={paletteId} onChange={setPaletteId} />
           </Group>
 
           <Group title="Canvas">
