@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Copy, Check, Loader2 } from 'lucide-react';
+import { Search, Copy, Check } from 'lucide-react';
 import { findGlyphs, hex } from '../../lib/glyphs';
 import { faceOf } from '../../lib/typeStyles';
 import { FONT_METADATA } from '../../data/fonts';
@@ -64,54 +64,64 @@ export default function GlyphsPreview({ primaryFont, secondaryFont, pStyle, sSty
 
   const sel = selected !== null ? String.fromCodePoint(selected) : '';
 
+  const codes = selected === null ? [] : [
+    ['Unicode', `U+${hex(selected)}`],
+    ['HTML', `&#x${hex(selected)};`],
+    ['CSS', `\\${hex(selected)}`],
+    ['JS', selected > 0xffff ? `\\u{${hex(selected)}}` : `\\u${hex(selected)}`],
+  ];
+  const groupNames = ['All', ...state.groups.map((g) => g.name)];
+
   return (
-    <div className="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-5 pb-6 lg:pt-14 min-h-0">
-      {/* Inspector */}
-      <aside className="lg:w-[300px] shrink-0 flex flex-col gap-3">
-        <div className="flex p-1 bg-muted rounded-full">
+    <div className="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-5 lg:gap-8 pb-44 lg:pb-6 lg:pt-14 min-h-0">
+      {/* Inspector — sticks beside the grid on desktop, a compact card on top on mobile. */}
+      <aside className="lg:w-[280px] shrink-0 flex flex-col gap-3 lg:sticky lg:top-14 lg:self-start">
+        <div className="flex p-1 bg-muted rounded-xl">
           {[['primary', primaryFont], ['secondary', secondaryFont]].map(([id, f]) => (
             <button
               key={id}
               onClick={() => setWhich(id)}
               aria-pressed={which === id}
-              className={cn('flex-1 text-[12px] py-1.5 rounded-full truncate px-2 transition-colors', which === id ? 'bg-background text-foreground shadow-sm font-medium' : 'text-muted-foreground')}
+              className={cn('flex-1 min-w-0 text-[12px] py-1.5 rounded-lg truncate px-2 transition-all', which === id ? 'bg-background text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground')}
+              style={{ fontFamily: `'${f}', sans-serif` }}
             >
               {f}
             </button>
           ))}
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col items-center">
-          <div className="h-[200px] w-full flex items-center justify-center text-foreground text-[150px] leading-none relative overflow-hidden" style={face}>
-            {/* Metric guides — baseline and x-height-ish — so the glyph reads as placed, not floating. */}
-            <div className="absolute inset-x-0 top-[70%] h-px bg-primary/25" />
+        <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-row lg:flex-col">
+          <div
+            className="relative shrink-0 w-[128px] h-[128px] lg:w-full lg:h-[220px] flex items-center justify-center text-foreground text-[84px] lg:text-[160px] leading-none overflow-hidden bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:14px_14px]"
+            style={face}
+          >
+            {/* Baseline and x-height-ish guides, so the glyph reads as set, not floating. */}
+            <div className="absolute inset-x-0 top-[70%] h-px bg-primary/30" />
             <div className="absolute inset-x-0 top-[38%] h-px bg-border" />
             <span className="relative">{sel}</span>
           </div>
           {selected !== null && (
-            <div className="w-full mt-3 flex flex-col gap-1.5 text-[12px]">
-              {[
-                ['Unicode', `U+${hex(selected)}`],
-                ['HTML', `&#x${hex(selected)};`],
-                ['CSS', `\\${hex(selected)}`],
-                ['JS', selected > 0xffff ? `\\u{${hex(selected)}}` : `\\u${hex(selected)}`],
-              ].map(([k, v]) => (
-                <button
-                  key={k}
-                  onClick={() => copy(v, k)}
-                  className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-muted text-left"
-                >
-                  <span className="text-muted-foreground">{k}</span>
-                  <span className="font-mono text-foreground flex items-center gap-1.5">
-                    {v} {copied === k ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} className="opacity-40" />}
-                  </span>
-                </button>
-              ))}
+            <div className="flex-1 min-w-0 p-3 lg:p-4 flex flex-col gap-2 border-l lg:border-l-0 lg:border-t border-border">
+              <div className="grid grid-cols-2 gap-1.5">
+                {codes.map(([k, v]) => (
+                  <button
+                    key={k}
+                    onClick={() => copy(v, k)}
+                    title={`Copy ${k}`}
+                    className="group flex flex-col items-start rounded-lg bg-muted/60 hover:bg-muted px-2 py-1.5 text-left min-w-0"
+                  >
+                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      {k} {copied === k ? <Check size={9} className="text-emerald-600" /> : <Copy size={9} className="opacity-0 group-hover:opacity-60" />}
+                    </span>
+                    <span className="font-mono text-[11px] text-foreground truncate max-w-full">{v}</span>
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={() => copy(sel, 'glyph')}
-                className="mt-1 h-9 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold flex items-center justify-center gap-2"
+                className="h-9 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-primary/95"
               >
-                {copied === 'glyph' ? <Check size={14} /> : <Copy size={14} />} Copy glyph
+                {copied === 'glyph' ? <Check size={14} /> : <Copy size={14} />} {copied === 'glyph' ? 'Copied' : 'Copy glyph'}
               </button>
             </div>
           )}
@@ -120,9 +130,9 @@ export default function GlyphsPreview({ primaryFont, secondaryFont, pStyle, sSty
 
       {/* Grid */}
       <section className="flex-1 min-w-0 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 h-9 px-3 rounded-full border border-border bg-card flex-1 min-w-[180px]">
-            <Search size={14} className="text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 h-10 px-3.5 rounded-xl border border-border bg-card flex-1 min-w-0 focus-within:ring-2 focus-within:ring-primary/30">
+            <Search size={14} className="text-muted-foreground shrink-0" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -131,34 +141,38 @@ export default function GlyphsPreview({ primaryFont, secondaryFont, pStyle, sSty
               className="bg-transparent outline-none text-[13px] flex-1 min-w-0"
             />
           </div>
-          <span className="text-[12px] text-muted-foreground tabular-nums">
+          <span className="shrink-0 text-[12px] text-muted-foreground tabular-nums px-1">
             {loading ? 'Scanning…' : `${total.toLocaleString()} glyphs`}
           </span>
         </div>
 
         {!loading && state.groups.length > 1 && (
-          <div className="flex flex-wrap gap-1.5">
-            {['All', ...state.groups.map((g) => g.name)].map((name) => (
-              <button
-                key={name}
-                onClick={() => { setGroup(name); setLimit(PAGE); }}
-                aria-pressed={group === name}
-                className={cn('text-[11px] px-2.5 py-1 rounded-full border transition-colors', group === name ? 'bg-foreground text-background border-foreground' : 'text-muted-foreground border-border hover:text-foreground')}
-              >
-                {name}
-                {name !== 'All' && <span className="opacity-60 ml-1 tabular-nums">{state.groups.find((g) => g.name === name)?.glyphs.length}</span>}
-              </button>
-            ))}
+          <div className="-mx-4 px-4 lg:mx-0 lg:px-0 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-1.5 w-max lg:w-auto lg:flex-wrap">
+              {groupNames.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => { setGroup(name); setLimit(PAGE); }}
+                  aria-pressed={group === name}
+                  className={cn('shrink-0 text-[12px] px-3 py-1.5 rounded-full border transition-colors', group === name ? 'bg-foreground text-background border-foreground' : 'text-muted-foreground border-border hover:text-foreground hover:border-foreground/30')}
+                >
+                  {name}
+                  {name !== 'All' && <span className="opacity-60 ml-1 tabular-nums">{state.groups.find((g) => g.name === name)?.glyphs.length}</span>}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {loading ? (
-          <div className="flex-1 flex items-center justify-center py-20 text-muted-foreground gap-2 text-[13px]">
-            <Loader2 size={16} className="animate-spin" /> Reading {family}’s character set…
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(52px,1fr))] gap-1" aria-busy="true" aria-label={`Reading ${family}’s character set`}>
+            {Array.from({ length: 48 }, (_, i) => (
+              <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" style={{ animationDelay: `${(i % 12) * 60}ms` }} />
+            ))}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-1.5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(52px,1fr))] gap-1">
               {visible.slice(0, limit).map((cp) => (
                 <button
                   key={cp}
@@ -166,12 +180,14 @@ export default function GlyphsPreview({ primaryFont, secondaryFont, pStyle, sSty
                   onDoubleClick={() => copy(String.fromCodePoint(cp), 'glyph')}
                   title={`U+${hex(cp)} — double-click to copy`}
                   className={cn(
-                    'aspect-square rounded-lg border flex flex-col items-center justify-center transition-colors',
-                    selected === cp ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-foreground/30'
+                    'group aspect-square rounded-lg flex flex-col items-center justify-center transition-all',
+                    selected === cp
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-card hover:bg-muted text-foreground ring-1 ring-border/60'
                   )}
                 >
-                  <span className="text-[24px] leading-none text-foreground" style={face}>{String.fromCodePoint(cp)}</span>
-                  <span className="text-[8px] font-mono text-muted-foreground mt-1">{hex(cp)}</span>
+                  <span className="text-[22px] leading-none" style={face}>{String.fromCodePoint(cp)}</span>
+                  <span className={cn('text-[8px] font-mono mt-1 transition-opacity', selected === cp ? 'opacity-80' : 'opacity-0 group-hover:opacity-60')}>{hex(cp)}</span>
                 </button>
               ))}
             </div>
@@ -183,7 +199,7 @@ export default function GlyphsPreview({ primaryFont, secondaryFont, pStyle, sSty
                 Show more ({(visible.length - limit).toLocaleString()} left)
               </button>
             )}
-            {!visible.length && <div className="text-[13px] text-muted-foreground py-10 text-center">No glyphs match.</div>}
+            {!visible.length && <div className="text-[13px] text-muted-foreground py-10 text-center">No glyphs match “{query}”.</div>}
           </>
         )}
       </section>

@@ -262,22 +262,25 @@ export default function LayoutsPreview({ pStyle, sStyle, text, revealKey }) {
   const View = VIEWS[layout] ?? Pricing;
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-6">
-      <div role="tablist" aria-label="Layout" className="flex flex-wrap justify-center gap-1.5">
-        {LAYOUTS.map((l) => (
-          <button
-            key={l.id}
-            role="tab"
-            aria-selected={layout === l.id}
-            onClick={() => setLayout(l.id)}
-            className={cn(
-              'text-[12px] px-3 py-1.5 rounded-full border font-medium transition-colors',
-              layout === l.id ? 'bg-primary text-primary-foreground border-primary' : 'text-muted-foreground border-border hover:text-foreground hover:border-foreground/40'
-            )}
-          >
-            {l.label}
-          </button>
-        ))}
+    <div className="w-full flex flex-col gap-6 pb-44 lg:pb-6">
+      {/* One segmented strip — scrolls sideways on narrow screens instead of wrapping into a ragged pile. */}
+      <div className="-mx-4 px-4 lg:mx-0 lg:px-0 overflow-x-auto scrollbar-hide flex lg:justify-center">
+        <div role="tablist" aria-label="Layout" className="inline-flex shrink-0 p-1 gap-0.5 bg-muted rounded-full">
+          {LAYOUTS.map((l) => (
+            <button
+              key={l.id}
+              role="tab"
+              aria-selected={layout === l.id}
+              onClick={() => setLayout(l.id)}
+              className={cn(
+                'whitespace-nowrap text-[12px] px-3.5 py-1.5 rounded-full font-medium transition-all',
+                layout === l.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div ref={scope} key={layout} className="flex-1 flex items-center justify-center px-1">
         <View h={h} b={b} text={text} />
