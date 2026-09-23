@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Sparkles } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Sparkles, Wand2 } from 'lucide-react';
+import { MOODS } from '../lib/pairing';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
 import { stack } from '../lib/typeStyles';
@@ -159,6 +160,8 @@ export default function TypeDock({
     generateRandomPair,
     onFontAdded,
     onAnimate,
+    mood, setMood,
+    pairReason,
 }) {
     const dockRef = useRef(null);
     const textareaRef = useRef(null);
@@ -352,6 +355,15 @@ export default function TypeDock({
 
             {/* The pairing itself — centered above the bar, not tucked in a
                 rail that only existed on desktop. */}
+            {pairReason && (
+                <div
+                    key={pairReason}
+                    role="status"
+                    className="pointer-events-none text-[11px] font-medium text-muted-foreground bg-background/80 backdrop-blur px-3 py-1 rounded-full border border-border/60 animate-in fade-in slide-in-from-bottom-1 duration-300"
+                >
+                    {pairReason}
+                </div>
+            )}
             <div data-bar className="pointer-events-auto flex items-center gap-2">
                 <FontPill
                     font={primaryFont}
@@ -420,6 +432,16 @@ export default function TypeDock({
                                     <X size={16} />
                                 </button>
                             </div>
+
+                    <Section icon={Wand2} title="Generate mood">
+                        <div className="flex flex-wrap gap-2 px-1">
+                            {MOODS.map(m => (
+                                <Pill key={m.id} active={mood === m.id} onClick={() => setMood(m.id)}>
+                                    {m.label}
+                                </Pill>
+                            ))}
+                        </div>
+                    </Section>
 
                     <Section
                         icon={Filter}

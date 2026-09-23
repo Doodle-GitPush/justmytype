@@ -14,6 +14,7 @@ import { loadFont, whenFontReady } from './lib/fontLoader';
 import { fallbackFor } from './lib/typeStyles';
 import { DUR } from './lib/gsap';
 import { buildShareUrl, readShareState } from './lib/shareLink';
+import { generatePair, headingWeight, bodyWeight } from './lib/pairing';
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
@@ -120,6 +121,16 @@ export default function App() {
     setTimeout(() => setFontToast(null), 4000);
   };
 
+  // Which kind of pairing Generate aims for — remembered between visits.
+  const [mood, setMood] = useState(() => {
+    try { return localStorage.getItem('jmt:mood') || 'any'; } catch { return 'any'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('jmt:mood', mood); } catch { /* storage unavailable */ }
+  }, [mood]);
+  // Why the generator chose the current pair, shown under the font pills.
+  const [pairReason, setPairReason] = useState(null);
+
   // Bumped on every generate so the preview replays its entrance animation.
   const [revealKey, setRevealKey] = useState(0);
 
@@ -171,28 +182,29 @@ export default function App() {
     if (primaryLocked && secondaryLocked) return;
 
     const pool = (filteredFonts && filteredFonts.length > 1) ? filteredFonts : FONTS;
+    const { heading, body, reason } = generatePair({
+      pool,
+      mood,
+      lockedHeading: primaryLocked ? primaryFont : undefined,
+      lockedBody: secondaryLocked ? secondaryFont : undefined,
+    });
 
-    let pf = primaryFont;
-    let sf = secondaryFont;
-
-    if (!primaryLocked && !secondaryLocked) {
-      const pi = Math.floor(Math.random() * pool.length);
-      let si;
-      do { si = Math.floor(Math.random() * pool.length); } while (si === pi);
-      pf = pool[pi];
-      sf = pool[si];
-    } else if (!primaryLocked) {
-      const others = pool.filter(f => f !== secondaryFont);
-      pf = others[Math.floor(Math.random() * others.length)] || pool[0];
-    } else {
-      const others = pool.filter(f => f !== primaryFont);
-      sf = others[Math.floor(Math.random() * others.length)] || pool[0];
+    // A generated pair also lands on sensible weights — a bold-ish heading
+    // and a regular body — rather than whatever the previous pair was left
+    // on, which the new family may not even ship.
+    if (!primaryLocked && heading) {
+      loadFont(heading);
+      setPrimaryFont(heading);
+      setPrimaryControls(c => ({ ...c, weight: headingWeight(heading) }));
     }
-
-    if (!primaryLocked && pf) { loadFont(pf); setPrimaryFont(pf); }
-    if (!secondaryLocked && sf) { loadFont(sf); setSecondaryFont(sf); }
+    if (!secondaryLocked && body) {
+      loadFont(body);
+      setSecondaryFont(body);
+      setSecondaryControls(c => ({ ...c, weight: bodyWeight(body) }));
+    }
+    setPairReason(reason);
     setRevealKey(k => k + 1);
-  }, [primaryLocked, secondaryLocked, primaryFont, secondaryFont, filteredFonts]);
+  }, [primaryLocked, secondaryLocked, primaryFont, secondaryFont, filteredFonts, mood]);
 
   // ── Keyboard shortcuts ──────────────────────────────
   useEffect(() => {
@@ -493,6 +505,8 @@ export default function App() {
           onFilteredListChange={setFilteredFonts}
           isTuneOpen={isTuneOpen} setIsTuneOpen={setIsTuneOpen}
           generateRandomPair={generateRandomPair}
+          mood={mood} setMood={setMood}
+          pairReason={pairReason}
           onFontAdded={handleFontAdded}
           onAnimate={() => setAnimateMode(true)}
         />

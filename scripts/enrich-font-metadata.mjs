@@ -8,6 +8,7 @@
 //   pop:   popularity rank, 1 = most used
 //   stroke: 'Sans Serif' | 'Serif' | 'Slab Serif' (omitted when unknown)
 //   subsets: ['latin', 'cyrillic', …]      ('menu' dropped)
+//   script: primary non-Latin script (ISO 15924, e.g. 'Jpan'), when there is one
 import { readFile, writeFile } from 'node:fs/promises';
 
 const FILE = new URL('../public/font-metadata.json', import.meta.url);
@@ -33,6 +34,7 @@ const out = current.map((entry) => {
   if (g.stroke) next.stroke = g.stroke;
   const subsets = (g.subsets || []).filter((s) => s !== 'menu');
   if (subsets.length) next.subsets = subsets;
+  if (g.primaryScript && g.primaryScript !== 'Latn') next.script = g.primaryScript;
   return next;
 });
 
