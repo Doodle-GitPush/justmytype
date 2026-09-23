@@ -313,6 +313,8 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
         <AnimateStudio
           primaryFont={primaryFont}
           pControls={primaryControls}
+          secondaryFont={secondaryFont}
+          sControls={secondaryControls}
           text={sampleText || SAMPLE.title}
           onExit={() => setAnimateMode(false)}
         />
