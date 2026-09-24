@@ -604,7 +604,7 @@ export default function TypeDock({
 
                 <div
                     className={cn(
-                        "flex items-end gap-1.5 px-2.5 py-2.5 transition-[border-color] duration-300",
+                        "flex items-end gap-1.5 px-2.5 pt-1.5 pb-[7px] transition-[border-color] duration-300",
                         isTuneOpen ? "border-t border-border/70" : "border-t border-transparent"
                     )}
                 >
