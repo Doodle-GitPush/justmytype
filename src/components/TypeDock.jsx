@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
-import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Wand2 } from 'lucide-react';
+import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Wand2, Shuffle, Newspaper, Terminal, Smile, Gem, Radio } from 'lucide-react';
 import StudioLauncher from './StudioLauncher';
 import { MOODS } from '../lib/pairing';
 import MagneticSelect from './MagneticSelect';
@@ -125,7 +125,15 @@ function FontPill({ font, isLocked, onToggleLock, controls, setControls, lhValue
 }
 
 // Cluster order is MOODS order, so "Any" sits at the hub.
-const MOOD_OPTIONS = MOODS.map(m => ({ ...m, mark: MOOD_MARKS[m.id] }));
+const MOOD_ICONS = {
+    any: Shuffle,
+    editorial: Newspaper,
+    tech: Terminal,
+    playful: Smile,
+    luxury: Gem,
+    retro: Radio,
+};
+const MOOD_OPTIONS = MOODS.map(m => ({ ...m, mark: MOOD_MARKS[m.id], icon: MOOD_ICONS[m.id] }));
 
 const MOOD_BLURBS = {
     any: 'Anything goes — contrasting pairs from well-loved families.',

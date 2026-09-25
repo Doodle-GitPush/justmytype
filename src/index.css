@@ -372,6 +372,19 @@
   height: 100%;
   object-fit: cover;}
 
+/* JustMyType: the icon on an unchosen disc — the ink at half
+   strength, a little stronger under the cursor, and gone on the
+   chosen one, where the picture has taken over. It crosses with
+   the picture's own 240ms fade so the swap reads as one change.
+   Positioned over the skin rather than in its flow so the picture
+   underneath keeps filling the whole disc. */
+.mag-icon {
+  position: absolute;
+  color: rgba(var(--ink-rgb), 0.5);
+  transition: color 0.24s ease, opacity 0.24s ease;}
+.mag-chip:hover .mag-icon { color: rgba(var(--ink-rgb), 0.85); }
+.mag-chip[data-on] .mag-icon { opacity: 0; }
+
 /* JustMyType: the name tip. No delay — it's the only way to
    tell blank chips apart, so it answers the moment the cursor
    lands; a short fade keeps it from flickering while moving

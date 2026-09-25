@@ -664,6 +664,16 @@ export default function MagneticSelect({
                 "--ly": `${lean.y.toFixed(2)}px`,
               }}
             >
+              {/* JustMyType: an icon on the unchosen discs. The
+                  original keeps them blank on purpose (the picture
+                  belongs to the answer), but blank discs left people
+                  guessing what each one was — so each option can bring
+                  a line icon, drawn in the ink at low strength, that
+                  hands over to the picture once it's chosen. */}
+              {options?.[i]?.icon && (() => {
+                const Icon = options[i].icon;
+                return <Icon className="mag-icon" size={18} strokeWidth={1.75} aria-hidden="true" />;
+              })()}
               {marks[i] && <img className="mag-mark" src={marks[i]} alt="" draggable={false} />}
             </span>
           </motion.button>
