@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronUp } from 'lucide-react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
 import { TABS } from '../data/constants';
 import { cn } from '@/lib/utils';
@@ -50,7 +49,7 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
         const el = labelRef.current;
         if (!el) return;
         let alive = true;
-        const measure = () => { if (alive) setPillW(12 + 28 + 8 + el.offsetWidth + 34); };
+        const measure = () => { if (alive) setPillW(12 + 28 + 8 + el.offsetWidth + 16); };
         measure();
         document.fonts?.ready.then(measure).catch(() => {});
         return () => { alive = false; };
@@ -160,7 +159,7 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
                 aria-haspopup="menu"
                 aria-label={`Preview mode: ${active.label}. Change view`}
                 className={cn(
-                    "absolute right-0 bottom-0 flex items-center gap-2 pl-3 pr-3 rounded-full text-primary transition-opacity",
+                    "absolute right-0 bottom-0 flex items-center gap-2 pl-3 pr-4 rounded-full text-primary transition-opacity",
                     open ? "opacity-0 pointer-events-none duration-100" : "opacity-100 duration-300 delay-100"
                 )}
                 style={{ height: PILL_H, width: pillW }}
@@ -169,7 +168,6 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
                     <ActiveIcon size={15} />
                 </span>
                 <span ref={labelRef} className="text-[13px] font-semibold whitespace-nowrap">{active.label}</span>
-                <ChevronUp size={14} className="ml-auto text-muted-foreground shrink-0" />
             </button>
 
             {/* Open: the list, laid over the grown surface. */}
