@@ -108,15 +108,10 @@ export default function App() {
   const [unlockToast, setUnlockToast] = useState(null);
 
   // Celebrate each achievement the moment it unlocks.
-  useEffect(() => onUnlock((a) => {
-    setUnlockToast(a);
-    setTimeout(() => setUnlockToast((t) => (t?.id === a.id ? null : t)), 4200);
-    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      import('canvas-confetti').then(({ default: confetti }) =>
-        confetti({ particleCount: 90, spread: 70, origin: { y: 0.15 }, zIndex: 200 })
-      );
-    }
-  }), []);
+  // Unlocks queue up and are celebrated one at a time — and never over the
+  // preloader (dark mode unlocks "Night Owl" the instant the app mounts).
+  const [unlockQueue, setUnlockQueue] = useState([]);
+  useEffect(() => onUnlock((a) => setUnlockQueue((q) => [...q, a])), []);
 
   const openStudio = (id) => {
     if (id === 'achievements') setShowAchievements(true);
@@ -184,6 +179,28 @@ export default function App() {
   const [booted, setBooted] = useState(false);
   const bootedRef = useRef(false);
   useEffect(() => { bootedRef.current = booted; }, [booted]);
+
+  useEffect(() => {
+    if (!booted || unlockToast || !unlockQueue.length) return;
+    const [a, ...rest] = unlockQueue;
+    // Deferred a tick so the state updates land outside the effect body.
+    const show = setTimeout(() => {
+      setUnlockQueue(rest);
+      setUnlockToast(a);
+      if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        import('canvas-confetti').then(({ default: confetti }) =>
+          confetti({ particleCount: 90, spread: 70, origin: { y: 0.15 }, zIndex: 200 })
+        );
+      }
+    }, 400);
+    return () => clearTimeout(show);
+  }, [booted, unlockToast, unlockQueue]);
+
+  useEffect(() => {
+    if (!unlockToast) return;
+    const hide = setTimeout(() => setUnlockToast(null), 4200);
+    return () => clearTimeout(hide);
+  }, [unlockToast]);
 
   // The ?s= param has done its job feeding the state initializers above —
   // clear it so the address bar doesn't keep showing a link that no longer

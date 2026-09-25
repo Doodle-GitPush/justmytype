@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap, useGSAP, EASE, prefersReducedMotion } from '@/lib/gsap';
 import { whenFontReady } from '@/lib/fontLoader';
 
@@ -7,6 +7,20 @@ const CURSOR_COLOR = '#FF4400';
 // Extra pixels added past the measured text width so the cursor sits with a
 // little breathing room after the last glyph instead of touching it.
 const CURSOR_GAP = 5.5;
+
+// Shown under the wordmark only when loading drags on, so a slow
+// connection gets an explanation instead of an endlessly blinking cursor.
+const SLOW_MESSAGES = [
+  [1500, 'Loading 1,900 fonts…'],
+  [4500, 'Almost there…'],
+];
+
+// A second visit in the same tab session skips the type-in — it's a
+// greeting, and nobody needs to be greeted twice in five minutes.
+const SEEN_KEY = 'jmt:booted';
+const seenThisSession = () => {
+  try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch { return false; }
+};
 
 /**
  * Boot screen: the wordmark reveals itself through a widening clip in a
@@ -22,7 +36,20 @@ export default function Preloader({ ready, onFinish }) {
   const root = useRef(null);
   const typeRef = useRef(null);
   const [typingDone, setTypingDone] = useState(false);
+  const [slowMessage, setSlowMessage] = useState(null);
   const exitStarted = useRef(false);
+  const quick = useRef(seenThisSession());
+
+  useEffect(() => {
+    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* storage unavailable */ }
+  }, []);
+
+  // Escalating status text while assets are still in flight.
+  useEffect(() => {
+    if (ready) return;
+    const timers = SLOW_MESSAGES.map(([delay, text]) => setTimeout(() => setSlowMessage(text), delay));
+    return () => timers.forEach(clearTimeout);
+  }, [ready]);
 
   // Type-in + caret blink.
   useGSAP(
@@ -30,7 +57,7 @@ export default function Preloader({ ready, onFinish }) {
       const el = typeRef.current;
       if (!el) return;
 
-      if (prefersReducedMotion()) {
+      if (prefersReducedMotion() || quick.current) {
         gsap.set(el, { borderRightColor: CURSOR_COLOR });
         setTypingDone(true);
         return;
@@ -84,7 +111,9 @@ export default function Preloader({ ready, onFinish }) {
       const reduced = prefersReducedMotion();
       const el = root.current;
 
-      gsap.delayedCall(reduced ? 0 : 0.15, () => {
+      // A returning visitor goes straight in; first-timers get a beat to
+      // read the finished wordmark before it leaves.
+      gsap.delayedCall(reduced || quick.current ? 0 : 0.15, () => {
         if (!el || reduced) {
           onFinish();
           return;
@@ -92,7 +121,7 @@ export default function Preloader({ ready, onFinish }) {
         gsap.to(el, {
           opacity: 0,
           scale: 1.02,
-          duration: 0.35,
+          duration: quick.current ? 0.2 : 0.35,
           ease: EASE.in,
           onComplete: onFinish,
         });
@@ -107,7 +136,7 @@ export default function Preloader({ ready, onFinish }) {
       role="status"
       aria-live="polite"
       aria-label="Loading JustMyType"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
     >
       <div
         ref={typeRef}
@@ -116,6 +145,16 @@ export default function Preloader({ ready, onFinish }) {
       >
         <span className="font-medium">JustMy</span>
         <span className="font-bold">Type</span>
+      </div>
+
+      {/* Absolutely placed so its arrival never nudges the wordmark. */}
+      <div className="relative w-full">
+        <p
+          key={slowMessage}
+          className={`absolute inset-x-0 top-4 text-center text-[12px] text-muted-foreground transition-opacity duration-500 ${slowMessage ? 'opacity-100 animate-in fade-in' : 'opacity-0'}`}
+        >
+          {slowMessage}
+        </p>
       </div>
     </div>
   );

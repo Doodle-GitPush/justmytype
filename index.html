@@ -11,20 +11,56 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
+  <!-- The boot screen waits on these two, so start them alongside the JS
+       bundle instead of after it: the wordmark's own font, and the font
+       library the picker, filters and pair generator all read. -->
+  <link rel="preload" href="/fonts/WantedSansVariable.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/font-metadata.json" as="fetch" crossorigin />
+
   <title>JustMyType — Find your font pairing</title>
   <meta name="description"
     content="Pair typefaces from 1,900+ Google Fonts, preview them in real layouts, and export the CSS." />
-  <meta name="theme-color" content="#0a84ff" />
+  <meta name="theme-color" content="#FF4400" />
 
   <meta property="og:type" content="website" />
   <meta property="og:title" content="JustMyType — Find your font pairing" />
   <meta property="og:description"
     content="Pair typefaces from 1,900+ Google Fonts, preview them in real layouts, and export the CSS." />
   <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Pick the theme before first paint, so dark-mode visitors never get a
+       white flash while the stylesheet is still on its way. Mirrors the
+       app's own default (system preference). -->
+  <script>
+    if (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+
+  <!-- Just enough CSS to paint the boot screen before any JS or CSS loads.
+       The markup below matches the React Preloader's first frame exactly
+       (an empty, centred, blinking cursor), so the hand-over is invisible. -->
+  <style>
+    html, body { margin: 0; background: hsl(240 20% 98%); }
+    html.dark, html.dark body { background: hsl(0 0% 5%); }
+    .boot {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .boot-cursor {
+      width: 0;
+      height: calc(1.5 * clamp(18px, 3.6vw, 28px));
+      border-right: 6px solid #FF4400;
+      animation: boot-blink 1s steps(1) infinite;
+    }
+    @keyframes boot-blink { 50% { border-right-color: transparent; } }
+    @media (prefers-reduced-motion: reduce) { .boot-cursor { animation: none; } }
+  </style>
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root"><div class="boot" role="status" aria-label="Loading JustMyType"><div class="boot-cursor"></div></div></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 
