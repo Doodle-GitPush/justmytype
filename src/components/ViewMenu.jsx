@@ -19,7 +19,8 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 /**
  * Preview-mode switcher, bottom-left beside the dock.
  *
- * At rest it's a pill naming the current view. Pressed, the pill itself
+ * At rest it's a pill naming the current view. Hovered (or pressed, on
+ * touch), the pill itself
  * grows up into a rounded panel listing every view — the same surface
  * morphing, not a menu popping out of a button — with a highlight that
  * glides between rows as you hover or arrow through them. Picking one
@@ -86,17 +87,39 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
         gsap.from(rootRef.current, { opacity: 0, y: 24, duration: DUR.slow, ease: EASE.out, delay: 0.2 });
     }, { scope: rootRef });
 
-    const press = () => {
-        if (open) { setOpen(false); return; }
+    const timer = useRef(0);
+    useEffect(() => () => clearTimeout(timer.current), []);
+
+    const openMenu = () => {
+        clearTimeout(timer.current);
+        if (open) return;
         // A short squash before it grows — the "press" of a soft object.
         setPressed(true);
         setHover(Math.max(0, TABS.findIndex(t => t.id === activeTab)));
-        setTimeout(() => { setPressed(false); setOpen(true); }, reduced ? 0 : 70);
+        timer.current = setTimeout(() => { setPressed(false); setOpen(true); }, reduced ? 0 : 70);
     };
+
+    const closeMenu = () => {
+        clearTimeout(timer.current);
+        setPressed(false);
+        setOpen(false);
+    };
+
+    // Hover opens it; leaving closes it after a short grace period, so a
+    // pointer that slips off the edge for a moment doesn't slam it shut.
+    // Touch and pen keep click-to-toggle (they have no hover).
+    const onEnter = (e) => { if (e.pointerType === 'mouse') openMenu(); };
+    const onLeave = (e) => {
+        if (e.pointerType !== 'mouse') return;
+        clearTimeout(timer.current);
+        timer.current = setTimeout(closeMenu, 180);
+    };
+
+    const press = () => (open ? closeMenu() : openMenu());
 
     const choose = (id) => {
         setActiveTab(id);
-        setOpen(false);
+        closeMenu();
     };
 
     const ease = open ? OPEN_EASE : CLOSE_EASE;
@@ -109,6 +132,8 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
             /* Anchored to the dock's left edge (the bar is a fixed 640px on
                lg+, so half of that plus a 12px gutter), growing up and to
                the left, away from the bar. */
+            onPointerEnter={onEnter}
+            onPointerLeave={onLeave}
             className="hidden lg:block fixed right-[calc(50%+332px)] bottom-6 z-40"
             style={{ width: open ? PANEL_W : pillW, height: PILL_H }}
         >
