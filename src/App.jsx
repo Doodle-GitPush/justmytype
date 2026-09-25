@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import { Moon, Sun, Check, Copy, Keyboard, Info, Link2, Trophy } from 'lucide-react';
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
-import RightTabs from './components/RightTabs';
+import ViewMenu from './components/ViewMenu';
 import FontInfoPanel from './components/FontInfoPanel';
 import AchievementsPanel from './components/AchievementsPanel';
 import Presence from './components/motion/Presence';
@@ -46,7 +46,7 @@ const SHORTCUTS = [
 
 // A compact icon circle for the desktop toolbar that grows rightward on
 // hover (or keyboard focus) to reveal a label, rather than a floating
-// tooltip — same idea RightTabs already uses for its preview-mode pill,
+// tooltip — same idea the old preview-mode pill used,
 // but that one animates max-width, which looks snappy rather than smooth:
 // the box reaches its actual content width the moment max-width crosses
 // it, then sits idle for whatever's left of the transition, so it visibly
@@ -623,9 +623,7 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
           revealKey={revealKey}
         />
 
-        <RightTabs
-          activeTab={activeTab} setActiveTab={setActiveTab}
-        />
+        <ViewMenu activeTab={activeTab} setActiveTab={setActiveTab} corner={28} />
 
         {/* Plain line, no pill — this is a credit, not a control. */}
         <div className="fixed bottom-3 right-4 lg:bottom-5 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground/70 z-40 transition-opacity hover:opacity-100 hidden sm:flex items-center gap-1">
