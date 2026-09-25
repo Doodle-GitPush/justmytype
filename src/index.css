@@ -372,6 +372,33 @@
   height: 100%;
   object-fit: cover;}
 
+/* JustMyType: the name tip. No delay — it's the only way to
+   tell blank chips apart, so it answers the moment the cursor
+   lands; a short fade keeps it from flickering while moving
+   across the cluster. It's portalled to <body>, outside .mag,
+   so it uses the project's tokens directly rather than the
+   mapped ones above. */
+.mag-tip {
+  position: fixed;
+  z-index: 95;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: mag-tip-in 120ms ease-out;}
+.mag-tip[data-side="top"]    { transform: translate(-50%, -100%); }
+.mag-tip[data-side="bottom"] { transform: translate(-50%, 0); }
+.mag-tip[data-side="left"]   { transform: translate(-100%, -50%); }
+.mag-tip[data-side="right"]  { transform: translate(0, -50%); }
+@keyframes mag-tip-in { from { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .mag-skin { transition-duration: 1ms; }
+  .mag-tip { animation: none; }
 }

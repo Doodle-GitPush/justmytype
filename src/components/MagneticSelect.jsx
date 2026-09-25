@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 
 /* Magnetic select — from Bencho (bencho.dev), MIT licensed:
@@ -552,6 +553,9 @@ export default function MagneticSelect({
     };
   }, [give, still, n]);
 
+  /* JustMyType: the hovered chip, for the name tip */
+  const [tip, setTip] = useState(null); // { i, el } of the hovered chip
+
   const choose = (i) => {
     if (i === at) return;
     setSel(i);
@@ -577,8 +581,13 @@ export default function MagneticSelect({
             aria-checked={on}
             aria-label={names[i]}
             /* JustMyType: unchosen chips are blank discs by
-               design, so the name has to be findable somewhere */
-            title={names[i]}
+               design, so the name shows on hover — our own tip
+               rather than `title`, whose built-in delay is about
+               a second and can't be shortened */
+            onPointerEnter={(e) => setTip({ i, el: e.currentTarget })}
+            onPointerLeave={() => setTip((t) => (t?.i === i ? null : t))}
+            onFocus={(e) => setTip({ i, el: e.currentTarget })}
+            onBlur={() => setTip((t) => (t?.i === i ? null : t))}
             data-on={on || undefined}
             style={{
               left: px - minX + H_PAD,
@@ -660,6 +669,58 @@ export default function MagneticSelect({
           </motion.button>
         );
       })}
+      {/* JustMyType: the name tip — see <NameTip> below */}
+      {options && tip && tip.i < n && (
+        <NameTip wrap={wrap} chip={tip.el} text={names[tip.i]} />
+      )}
     </div>
+  );
+}
+
+/* JustMyType: the name tip for a hovered chip.
+
+   The chips are packed 4px apart, so a label directly above or
+   below one lands on a neighbour and reads as naming THAT chip.
+   It goes outward instead, along the bearing from the cluster's
+   centre: above the top row, below the bottom row, beside the
+   side chips, and above the whole cluster for the hub. That way
+   it always points back at the chip it names.
+
+   Portalled to <body> with fixed coordinates so the panel it
+   lives in (which scrolls, and so clips) can't cut it off. */
+function NameTip({ wrap, chip, text }) {
+  const [pos, setPos] = useState(null);
+
+  useLayoutEffect(() => {
+    if (!wrap.current || !chip) return;
+    const w = wrap.current.getBoundingClientRect();
+    const c = chip.getBoundingClientRect();
+    const cx = c.left + c.width / 2;
+    const cy = c.top + c.height / 2;
+    const dx = cx - (w.left + w.width / 2);
+    const dy = cy - (w.top + w.height / 2);
+    const GAP = 8;
+    let next;
+    if (Math.hypot(dx, dy) < 12) {
+      next = { left: cx, top: c.top - GAP, side: "top" };
+    } else if (Math.abs(dx) > Math.abs(dy) * 1.5) {
+      next = dx > 0
+        ? { left: c.right + GAP, top: cy, side: "right" }
+        : { left: c.left - GAP, top: cy, side: "left" };
+    } else {
+      next = dy < 0
+        ? { left: cx, top: c.top - GAP, side: "top" }
+        : { left: cx, top: c.bottom + GAP, side: "bottom" };
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- measured from layout, which only exists after render
+    setPos(next);
+  }, [wrap, chip, text]);
+
+  if (!pos) return null;
+  return createPortal(
+    <span className="mag-tip" data-side={pos.side} style={{ left: pos.left, top: pos.top }}>
+      {text}
+    </span>,
+    document.body
   );
 }
