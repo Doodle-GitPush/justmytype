@@ -15,13 +15,6 @@ const SLOW_MESSAGES = [
   [4500, 'Almost there…'],
 ];
 
-// A second visit in the same tab session skips the type-in — it's a
-// greeting, and nobody needs to be greeted twice in five minutes.
-const SEEN_KEY = 'jmt:booted';
-const seenThisSession = () => {
-  try { return sessionStorage.getItem(SEEN_KEY) === '1'; } catch { return false; }
-};
-
 /**
  * Boot screen: the wordmark reveals itself through a widening clip in a
  * monospace cell, so the right edge of that clip doubles as a cursor —
@@ -38,11 +31,6 @@ export default function Preloader({ ready, onFinish }) {
   const [typingDone, setTypingDone] = useState(false);
   const [slowMessage, setSlowMessage] = useState(null);
   const exitStarted = useRef(false);
-  const quick = useRef(seenThisSession());
-
-  useEffect(() => {
-    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* storage unavailable */ }
-  }, []);
 
   // Escalating status text while assets are still in flight.
   useEffect(() => {
@@ -57,7 +45,7 @@ export default function Preloader({ ready, onFinish }) {
       const el = typeRef.current;
       if (!el) return;
 
-      if (prefersReducedMotion() || quick.current) {
+      if (prefersReducedMotion()) {
         gsap.set(el, { borderRightColor: CURSOR_COLOR });
         setTypingDone(true);
         return;
@@ -111,9 +99,7 @@ export default function Preloader({ ready, onFinish }) {
       const reduced = prefersReducedMotion();
       const el = root.current;
 
-      // A returning visitor goes straight in; first-timers get a beat to
-      // read the finished wordmark before it leaves.
-      gsap.delayedCall(reduced || quick.current ? 0 : 0.15, () => {
+      gsap.delayedCall(reduced ? 0 : 0.15, () => {
         if (!el || reduced) {
           onFinish();
           return;
@@ -121,7 +107,7 @@ export default function Preloader({ ready, onFinish }) {
         gsap.to(el, {
           opacity: 0,
           scale: 1.02,
-          duration: quick.current ? 0.2 : 0.35,
+          duration: 0.35,
           ease: EASE.in,
           onComplete: onFinish,
         });
