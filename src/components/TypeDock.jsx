@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { SlidersHorizontal, X, Filter, XCircle, Lock, Unlock, RefreshCw, Upload, Wand2 } from 'lucide-react';
 import StudioLauncher from './StudioLauncher';
 import { MOODS } from '../lib/pairing';
+import MagneticSelect from './MagneticSelect';
+import { MOOD_MARKS } from '../data/moodMarks';
 import { track } from '../lib/achievements';
 import FontSection from './FontSection';
 import FontControls from './FontControls';
@@ -121,6 +123,18 @@ function FontPill({ font, isLocked, onToggleLock, controls, setControls, lhValue
         </div>
     );
 }
+
+// Cluster order is MOODS order, so "Any" sits at the hub.
+const MOOD_OPTIONS = MOODS.map(m => ({ ...m, mark: MOOD_MARKS[m.id] }));
+
+const MOOD_BLURBS = {
+    any: 'Anything goes — contrasting pairs from well-loved families.',
+    editorial: 'Serif headlines built for long reads.',
+    tech: 'Crisp sans and mono, precise and quiet.',
+    playful: 'Display and script faces over a friendly sans.',
+    luxury: 'Refined, high-contrast serifs over a light sans.',
+    retro: 'Slabs and display faces with some character.',
+};
 
 function Section({ icon: Icon, title, aside, children }) {
     return (
@@ -437,12 +451,24 @@ export default function TypeDock({
                             </div>
 
                     <Section icon={Wand2} title="Generate mood">
-                        <div className="flex flex-wrap gap-2 px-1">
-                            {MOODS.map(m => (
-                                <Pill key={m.id} active={mood === m.id} onClick={() => setMood(m.id)}>
-                                    {m.label}
-                                </Pill>
-                            ))}
+                        {/* The chips are blank until chosen (the picture belongs
+                            to the answer), so the answer is also spelled out
+                            beside the cluster. */}
+                        <div data-stroke="on" className="flex items-center gap-2 pr-4 bg-card rounded-xl border">
+                            <MagneticSelect
+                                options={MOOD_OPTIONS}
+                                value={mood}
+                                onChange={setMood}
+                                label="Generate mood"
+                            />
+                            <div className="min-w-0 flex-1">
+                                <div className="text-[15px] font-semibold text-foreground">
+                                    {MOODS.find(m => m.id === mood)?.label}
+                                </div>
+                                <p className="text-[11px] leading-snug text-muted-foreground mt-1">
+                                    {MOOD_BLURBS[mood]}
+                                </p>
+                            </div>
                         </div>
                     </Section>
 
