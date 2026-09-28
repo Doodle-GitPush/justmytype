@@ -30,7 +30,6 @@ export default function PreviewArea({
   setSampleText,
   bodyLineHeight,
   revealKey,
-  onOpenStudio,
 }) {
   const stage = useRef(null);
   const reduced = prefersReducedMotion();
@@ -98,7 +97,6 @@ export default function PreviewArea({
             revealKey={revealKey}
             bodyLineHeight={bodyLineHeight}
             onTextChange={setSampleText}
-            onOpenStudio={onOpenStudio}
           />
         </div>
       </div>

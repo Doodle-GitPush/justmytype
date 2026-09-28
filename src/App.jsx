@@ -649,7 +649,6 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
           sampleText={sampleText} setSampleText={setSampleText}
           bodyLineHeight={bodyLineHeight}
           revealKey={revealKey}
-          onOpenStudio={openStudio}
         />
 
         <ViewMenu activeTab={activeTab} setActiveTab={setActiveTab} corner={28} />
