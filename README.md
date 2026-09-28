@@ -33,7 +33,7 @@ every preview, are included in Copy CSS, and survive share links.
 
 ## Studio
 
-The **Studio** pill beside the dock opens the Studio home: a Create and a Play
+The orange **Glyph studio** pill beside the dock opens the Studio home: a Create and a Play
 gallery of cards, each with a live preview made from the current pair (the
 pill's second line cycles through what's inside), and every few generated
 pairs a small card

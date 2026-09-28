@@ -34,19 +34,21 @@ export default function StudioLauncher({ onOpen }) {
       onClick={() => onOpen('create')}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      aria-label="Open the Studio — create and play with this pair"
-      className="group pointer-events-auto shrink-0 flex items-center gap-2.5 h-[52px] pl-4 pr-4 sm:pr-5 sm:w-[184px] rounded-full bg-background/90 backdrop-blur-xl border border-border shadow-xl transition-all hover:bg-card hover:scale-[1.03] active:scale-95"
+      aria-label="Open Glyph studio — create and play with this pair"
+      /* Solid brand orange — the one filled pill in the dock, so the
+         Studio reads as a destination rather than another control. */
+      className="group pointer-events-auto shrink-0 flex items-center gap-2.5 h-[52px] pl-3 pr-4 sm:pr-5 sm:w-[184px] rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/25 transition-all hover:bg-primary/95 hover:scale-[1.03] active:scale-95"
     >
-      <span className="relative w-8 h-8 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+      <span className="relative w-8 h-8 shrink-0 rounded-full bg-primary-foreground/20 flex items-center justify-center">
         <Icon key={item.id} size={15} className="motion-safe:animate-[jmt-roll-in_280ms_ease-out]" />
         {/* a small sparkle marking this as the "more" place */}
-        <Sparkles size={10} className="absolute -top-0.5 -right-0.5 text-primary bg-background rounded-full p-[1px]" />
+        <Sparkles size={10} className="absolute -top-0.5 -right-0.5 text-primary bg-primary-foreground rounded-full p-[1px]" />
       </span>
       <span className="hidden sm:flex flex-col items-start min-w-0 leading-tight">
-        <span className="text-[13px] font-semibold text-foreground">Studio</span>
+        <span className="text-[13px] font-semibold">Glyph studio</span>
         <span
           key={item.id}
-          className="text-[11px] text-muted-foreground truncate max-w-[118px] motion-safe:animate-[jmt-roll-in_280ms_ease-out]"
+          className="text-[11px] text-primary-foreground/80 truncate max-w-[118px] motion-safe:animate-[jmt-roll-in_280ms_ease-out]"
         >
           {item.teaser}
         </span>
