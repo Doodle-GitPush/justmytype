@@ -37,7 +37,7 @@ export default function StudioLauncher({ onOpen }) {
       aria-label="Open Glyph studio — create and play with this pair"
       /* Solid brand orange — the one filled pill in the dock, so the
          Studio reads as a destination rather than another control. */
-      className="group pointer-events-auto shrink-0 flex items-center gap-2.5 h-[52px] pl-3 pr-4 sm:pr-5 sm:w-[184px] rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/25 transition-all hover:bg-primary/95 hover:scale-[1.03] active:scale-95"
+      className="group pointer-events-auto shrink-0 flex items-center gap-2.5 h-[52px] pl-3 pr-4 sm:pr-5 sm:w-[184px] rounded-full bg-primary text-primary-foreground transition-all hover:bg-primary/95 hover:scale-[1.03] active:scale-95"
     >
       <span className="relative w-8 h-8 shrink-0 rounded-full bg-primary-foreground/20 flex items-center justify-center">
         <Icon key={item.id} size={15} className="motion-safe:animate-[jmt-roll-in_280ms_ease-out]" />
