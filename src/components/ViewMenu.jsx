@@ -41,7 +41,14 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
     const active = TABS.find(t => t.id === activeTab) ?? TABS[0];
     const ActiveIcon = active.icon;
     const radius = clamp(corner, 0, MAX_CORNER);
-    const panelH = PAD * 2 + TABS.length * ROW_H;
+    // Concentric corners: the highlight's radius has to be the panel's
+    // radius minus the gap between them, or the two curves visibly
+    // disagree. A row can be at most a pill (ROW_H / 2), so when the
+    // panel is rounder than that, the gap grows to make up the rest
+    // instead of the highlight's corner falling short.
+    const pad = Math.max(PAD, radius - ROW_H / 2);
+    const innerR = clamp(radius - pad, 0, ROW_H / 2);
+    const panelH = pad * 2 + TABS.length * ROW_H;
     const reduced = prefersReducedMotion();
 
     // The closed pill hugs its label, so measure it (after the UI font lands).
@@ -173,17 +180,19 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
                 role="menu"
                 aria-label="Preview mode"
                 className={cn("absolute right-0 bottom-0", !open && "pointer-events-none")}
-                style={{ width: PANEL_W, height: panelH, padding: PAD }}
+                style={{ width: PANEL_W, height: panelH, padding: pad }}
                 onPointerLeave={() => setHover(Math.max(0, TABS.findIndex(t => t.id === activeTab)))}
             >
                 {/* The highlight that glides between rows. */}
                 <span
                     aria-hidden="true"
-                    className="absolute left-[6px] right-[6px] bg-muted"
+                    className="absolute bg-muted"
                     style={{
-                        top: PAD,
+                        top: pad,
+                        left: pad,
+                        right: pad,
                         height: ROW_H,
-                        borderRadius: clamp(radius - PAD, 0, ROW_H / 2),
+                        borderRadius: innerR,
                         transform: `translateY(${hover * ROW_H}px)`,
                         opacity: open ? 1 : 0,
                         transition: reduced ? 'none' : 'transform 260ms cubic-bezier(0.3, 1.2, 0.4, 1), opacity 200ms ease',
