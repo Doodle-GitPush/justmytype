@@ -49,7 +49,7 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
         const el = labelRef.current;
         if (!el) return;
         let alive = true;
-        const measure = () => { if (alive) setPillW(12 + 28 + 8 + el.offsetWidth + 16); };
+        const measure = () => { if (alive) setPillW(16 + 16 + 8 + el.offsetWidth + 16); };
         measure();
         document.fonts?.ready.then(measure).catch(() => {});
         return () => { alive = false; };
@@ -159,14 +159,12 @@ export default function ViewMenu({ activeTab, setActiveTab, corner = 28 }) {
                 aria-haspopup="menu"
                 aria-label={`Preview mode: ${active.label}. Change view`}
                 className={cn(
-                    "absolute right-0 bottom-0 flex items-center gap-2 pl-3 pr-4 rounded-full text-primary transition-opacity",
+                    "absolute right-0 bottom-0 flex items-center gap-2 pl-4 pr-4 rounded-full text-primary transition-opacity",
                     open ? "opacity-0 pointer-events-none duration-100" : "opacity-100 duration-300 delay-100"
                 )}
                 style={{ height: PILL_H, width: pillW }}
             >
-                <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <ActiveIcon size={15} />
-                </span>
+                <ActiveIcon size={16} className="shrink-0" />
                 <span ref={labelRef} className="text-[13px] font-semibold whitespace-nowrap">{active.label}</span>
             </button>
 
