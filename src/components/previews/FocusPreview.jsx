@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { gsap, useGSAP, EASE, DUR, prefersReducedMotion } from '@/lib/gsap';
+import { Sparkles } from 'lucide-react';
 import { SAMPLE } from '../../data/content';
 import { stack, fxStyle } from '../../lib/typeStyles';
 
@@ -22,7 +23,7 @@ const sizeFor = (len, size) => {
   return `clamp(${44 * scale}px,${10.5 * scale}vw,${168 * scale}px)`;
 };
 
-export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange }) {
+export default function FocusPreview({ primaryFont, secondaryFont, pControls, sControls, text, revealKey, bodyLineHeight, onTextChange, onOpenStudio }) {
   const wordRef = useRef(null);
   const subRef = useRef(null);
 
@@ -101,6 +102,19 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-8 min-h-0">
+      {/* Hovering the headline offers to animate it — the Studio showing
+          up right where the type is, instead of only behind a button.
+          Hover-only (and on keyboard focus), so it never sits over the
+          text while someone is simply reading it. */}
+      <div className="relative group/headline max-w-[1100px]">
+      {onOpenStudio && (
+        <button
+          onClick={() => onOpenStudio('animate')}
+          className="absolute -top-11 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 h-8 px-3 rounded-full bg-foreground text-background text-[12px] font-semibold shadow-lg whitespace-nowrap opacity-0 translate-y-1 pointer-events-none transition-all duration-200 group-hover/headline:opacity-100 group-hover/headline:translate-y-0 group-hover/headline:pointer-events-auto focus-visible:opacity-100 focus-visible:translate-y-0 focus-visible:pointer-events-auto"
+        >
+          <Sparkles size={13} /> Animate this
+        </button>
+      )}
       <div
         ref={wordRef}
         contentEditable
@@ -129,6 +143,7 @@ export default function FocusPreview({ primaryFont, secondaryFont, pControls, sC
           ...fxStyle(shown.primaryFont, pControls),
         }}
       />
+      </div>
 
       <div
         ref={subRef}

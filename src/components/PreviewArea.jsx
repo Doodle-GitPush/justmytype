@@ -30,6 +30,7 @@ export default function PreviewArea({
   setSampleText,
   bodyLineHeight,
   revealKey,
+  onOpenStudio,
 }) {
   const stage = useRef(null);
   const reduced = prefersReducedMotion();
@@ -82,7 +83,8 @@ export default function PreviewArea({
   return (
     <main
       id="jmt-preview-area"
-      className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:px-6 pb-28 lg:pb-7 bg-background relative"
+      /* lg:pt clears the Pair · Create · Play switch pinned top-centre. */
+      className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:px-6 lg:pt-[76px] pb-28 lg:pb-7 bg-background relative"
     >
       <div className="flex-1 flex flex-col overflow-visible lg:overflow-y-auto scrollbar-hide relative min-h-0 pt-2">
         <div ref={stage} className="flex-1 flex flex-col">
@@ -97,6 +99,7 @@ export default function PreviewArea({
             revealKey={revealKey}
             bodyLineHeight={bodyLineHeight}
             onTextChange={setSampleText}
+            onOpenStudio={onOpenStudio}
           />
         </div>
       </div>

@@ -11,7 +11,7 @@ export function StudioHeader({ title, subtitle, subtitleStyle, onExit, children 
         className="flex items-center gap-2 bg-background/80 backdrop-blur border border-border px-4 py-2 rounded-full text-[13px] font-semibold shadow-sm transition-all hover:bg-card text-foreground"
       >
         <ArrowLeft size={16} />
-        <span className="hidden sm:inline">Back to editor</span>
+        <span className="hidden sm:inline">Back</span>
       </button>
       <div className="flex items-center gap-2 text-[13px] text-muted-foreground truncate">
         <span className="hidden sm:inline">{title}</span>

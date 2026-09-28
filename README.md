@@ -33,7 +33,12 @@ every preview, are included in Copy CSS, and survive share links.
 
 ## Studio
 
-The **Studio** button beside the dock opens full-screen modes:
+The app has three places — **Pair · Create · Play** — switched from the top of
+the screen. Create and Play open the Studio home: a gallery of cards, each with
+a live preview made from the current pair. The Studio pill beside the dock
+opens it too (its second line cycles through what's inside), the Focus headline
+offers "Animate this" on hover, and every few generated pairs a small card
+suggests animating the pair or putting it on a poster. The modes:
 
 | Mode | What it does |
 |---|---|

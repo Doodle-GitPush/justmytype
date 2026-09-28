@@ -3,6 +3,8 @@ import { Moon, Sun, Check, Copy, Keyboard, Info, Link2, Trophy } from 'lucide-re
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import ViewMenu from './components/ViewMenu';
+import ModeSwitch from './components/studio/ModeSwitch';
+import StudioTeaser from './components/studio/StudioTeaser';
 import FontInfoPanel from './components/FontInfoPanel';
 import AchievementsPanel from './components/AchievementsPanel';
 import Presence from './components/motion/Presence';
@@ -27,6 +29,7 @@ const PosterStudio = lazy(() => import('./components/PosterStudio'));
 const LabStudio = lazy(() => import('./components/LabStudio'));
 const KernGame = lazy(() => import('./components/KernGame'));
 const MatchGame = lazy(() => import('./components/MatchGame'));
+const StudioHome = lazy(() => import('./components/studio/StudioHome'));
 
 const SHORTCUTS = [
   { keys: ['Space'], label: 'Generate new pair (next candidate in Compare)' },
@@ -102,8 +105,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => shared?.activeTab ?? 'focus');
   // Studios and games are full takeovers, not overlays — entering one
   // replaces the whole editor shell; Back is its own explicit control.
-  // null | 'animate' | 'poster' | 'lab' | 'kern' | 'match'
+  // null | 'home' | 'animate' | 'poster' | 'lab' | 'kern' | 'match'
   const [studio, setStudio] = useState(null);
+  // Which side of the Studio home is showing, and whether the open studio
+  // was reached from there (so Back returns to the gallery, not the editor).
+  const [homeSection, setHomeSection] = useState('create');
+  const [fromHome, setFromHome] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [unlockToast, setUnlockToast] = useState(null);
 
@@ -113,10 +120,20 @@ export default function App() {
   const [unlockQueue, setUnlockQueue] = useState([]);
   useEffect(() => onUnlock((a) => setUnlockQueue((q) => [...q, a])), []);
 
+  // 'create' / 'play' open the Studio home on that side; a studio id opens
+  // that studio straight away; 'pair' returns to the editor.
   const openStudio = (id) => {
-    if (id === 'achievements') setShowAchievements(true);
-    else setStudio(id);
+    if (id === 'achievements') { setShowAchievements(true); return; }
+    if (id === 'pair') { setStudio(null); return; }
+    if (id === 'create' || id === 'play') {
+      setHomeSection(id);
+      setStudio('home');
+      return;
+    }
+    setFromHome(studio === 'home');
+    setStudio(id);
   };
+  const exitStudio = () => setStudio(fromHome ? 'home' : null);
 
   // Type Match's "Use pair" — straight into the editor with sensible weights.
   const applyPair = (heading, body) => {
@@ -368,6 +385,18 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
           overlaying it — the dock, preview tabs, and toolbar all disappear
           while it's up, and Back is the only way out. */}
       <Suspense fallback={<div className="fixed inset-0 z-[90] bg-background" />}>
+        {booted && studio === 'home' && (
+          <StudioHome
+            section={homeSection}
+            onSection={openStudio}
+            onPick={openStudio}
+            onAchievements={() => setShowAchievements(true)}
+            primaryFont={primaryFont}
+            secondaryFont={secondaryFont}
+            pControls={primaryControls}
+            text={sampleText || SAMPLE.title}
+          />
+        )}
         {booted && studio === 'animate' && (
           <AnimateStudio
             primaryFont={primaryFont}
@@ -375,7 +404,7 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
             secondaryFont={secondaryFont}
             sControls={secondaryControls}
             text={sampleText || SAMPLE.title}
-            onExit={() => setStudio(null)}
+            onExit={exitStudio}
           />
         )}
         {booted && studio === 'poster' && (
@@ -385,7 +414,7 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
             secondaryFont={secondaryFont}
             sControls={secondaryControls}
             text={sampleText || SAMPLE.title}
-            onExit={() => setStudio(null)}
+            onExit={exitStudio}
           />
         )}
         {booted && studio === 'lab' && (
@@ -395,11 +424,11 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
             secondaryFont={secondaryFont}
             sControls={secondaryControls}
             text={sampleText || SAMPLE.title}
-            onExit={() => setStudio(null)}
+            onExit={exitStudio}
           />
         )}
-        {booted && studio === 'kern' && <KernGame onExit={() => setStudio(null)} />}
-        {booted && studio === 'match' && <MatchGame onExit={() => setStudio(null)} onApply={applyPair} />}
+        {booted && studio === 'kern' && <KernGame onExit={exitStudio} />}
+        {booted && studio === 'match' && <MatchGame onExit={exitStudio} onApply={applyPair} />}
       </Suspense>
 
       <AchievementsPanel open={showAchievements} onOpenChange={setShowAchievements} />
@@ -473,6 +502,7 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
 
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-end gap-2 px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
+          <ModeSwitch value="pair" onChange={openStudio} className="mr-auto shadow-none" />
           <button
             onClick={handleCopyShareLink}
             aria-label="Copy a link to this exact pairing"
@@ -514,6 +544,12 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
             })}
           </div>
         </nav>
+
+        {/* Pair · Create · Play — the studios as a destination of their own,
+            not a button beside the text box. */}
+        <div className="hidden lg:flex absolute top-6 left-1/2 -translate-x-1/2 z-50">
+          <ModeSwitch value="pair" onChange={openStudio} />
+        </div>
 
         {/* Desktop floating actions */}
         <div className="hidden lg:flex absolute top-6 right-8 items-center gap-3 z-50">
@@ -621,9 +657,18 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
           sampleText={sampleText} setSampleText={setSampleText}
           bodyLineHeight={bodyLineHeight}
           revealKey={revealKey}
+          onOpenStudio={openStudio}
         />
 
         <ViewMenu activeTab={activeTab} setActiveTab={setActiveTab} corner={28} />
+
+        <StudioTeaser
+          trigger={revealKey}
+          blocked={isTuneOpen}
+          primaryFont={primaryFont}
+          weight={primaryControls.weight}
+          onOpen={openStudio}
+        />
 
         {/* Plain line, no pill — this is a credit, not a control. */}
         <div className="fixed bottom-3 right-4 lg:bottom-5 lg:right-6 text-[10px] sm:text-[11px] font-medium text-muted-foreground/70 z-40 transition-opacity hover:opacity-100 hidden sm:flex items-center gap-1">
