@@ -3,7 +3,6 @@ import { Moon, Sun, Check, Copy, Keyboard, Info, Link2, Trophy } from 'lucide-re
 import TypeDock from './components/TypeDock';
 import PreviewArea from './components/PreviewArea';
 import ViewMenu from './components/ViewMenu';
-import ModeSwitch from './components/studio/ModeSwitch';
 import StudioTeaser from './components/studio/StudioTeaser';
 import FontInfoPanel from './components/FontInfoPanel';
 import AchievementsPanel from './components/AchievementsPanel';
@@ -502,7 +501,6 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
 
         {/* Mobile header */}
         <header className="lg:hidden flex items-center justify-end gap-2 px-3 sm:px-4 py-3 bg-background border-b border-border z-40 shrink-0">
-          <ModeSwitch value="pair" onChange={openStudio} className="mr-auto shadow-none" />
           <button
             onClick={handleCopyShareLink}
             aria-label="Copy a link to this exact pairing"
@@ -544,12 +542,6 @@ ${rule('.body', secondaryFont, secondaryControls, bodyLineHeight)}`;
             })}
           </div>
         </nav>
-
-        {/* Pair · Create · Play — the studios as a destination of their own,
-            not a button beside the text box. */}
-        <div className="hidden lg:flex absolute top-6 left-1/2 -translate-x-1/2 z-50">
-          <ModeSwitch value="pair" onChange={openStudio} />
-        </div>
 
         {/* Desktop floating actions */}
         <div className="hidden lg:flex absolute top-6 right-8 items-center gap-3 z-50">

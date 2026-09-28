@@ -18,9 +18,8 @@ const PREVIEWS = {
 /**
  * The Studio's front door — Create and Play as a gallery of big cards,
  * each running a live preview made from the current pair, instead of a
- * list of names in a popover. The mode switch at the top is the same
- * one the editor shows, so Pair · Create · Play reads as three places
- * rather than an editor with a menu.
+ * list of names in a popover. The switch at the top flips between the
+ * Create and Play sides.
  */
 export default function StudioHome({
     section, onSection, onPick, onAchievements,

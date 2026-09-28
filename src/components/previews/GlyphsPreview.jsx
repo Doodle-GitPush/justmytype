@@ -73,9 +73,9 @@ export default function GlyphsPreview({ primaryFont, secondaryFont, pStyle, sSty
   const groupNames = ['All', ...state.groups.map((g) => g.name)];
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-5 lg:gap-8 pb-44 lg:pb-6 min-h-0">
+    <div className="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-5 lg:gap-8 pb-44 lg:pb-6 lg:pt-14 min-h-0">
       {/* Inspector — sticks beside the grid on desktop, a compact card on top on mobile. */}
-      <aside className="lg:w-[280px] shrink-0 flex flex-col gap-3 lg:sticky lg:top-0 lg:self-start">
+      <aside className="lg:w-[280px] shrink-0 flex flex-col gap-3 lg:sticky lg:top-14 lg:self-start">
         <div className="flex p-1 bg-muted rounded-xl">
           {[['primary', primaryFont], ['secondary', secondaryFont]].map(([id, f]) => (
             <button

@@ -83,8 +83,7 @@ export default function PreviewArea({
   return (
     <main
       id="jmt-preview-area"
-      /* lg:pt clears the Pair · Create · Play switch pinned top-centre. */
-      className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:px-6 lg:pt-[76px] pb-28 lg:pb-7 bg-background relative"
+      className="flex-1 h-auto lg:h-full overflow-visible lg:overflow-hidden flex flex-col p-3 px-4 lg:px-6 pb-28 lg:pb-7 bg-background relative"
     >
       <div className="flex-1 flex flex-col overflow-visible lg:overflow-y-auto scrollbar-hide relative min-h-0 pt-2">
         <div ref={stage} className="flex-1 flex flex-col">

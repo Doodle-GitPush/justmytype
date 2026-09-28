@@ -2,15 +2,12 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 const MODES = [
-  { id: 'pair', label: 'Pair' },
   { id: 'create', label: 'Create' },
   { id: 'play', label: 'Play' },
 ];
 
 /**
- * Pair · Create · Play — the app's top-level destinations. The studios
- * used to hide behind one button beside the text box; this puts them
- * on the same footing as the editor itself.
+ * Create · Play — the two sides of the Studio home.
  *
  * The active marker is one element that slides between labels,
  * measured from the buttons, so it lands exactly on each word
